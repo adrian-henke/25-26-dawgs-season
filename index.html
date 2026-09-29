@@ -3,101 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>25-26 Utah Dawgs Season</title>
+<title>26-27 Utah Dawgs Season</title>
 <style>
   :root {
-    --navy:#0b1220; --navy-2:#141d31; --ink:#111827; --muted:#6b7280; --line:#e5e7eb;
-    --bg:#f3f4f6; --card:#fff; --accent:#1e6bff; --win:#16a34a; --loss:#dc2626; --otl:#d97706;
+    color-scheme: dark;
+    --blue:#184b9a; --blue-2:#2260c4; --blue-hi:#5b9bff;
+    --bg:#05080f; --card:#0b1424; --card-2:#0f1b31; --hover:#15294d; --line:#1c2d4f;
+    --ink:#f3f6fc; --muted:#94a6c6;
+    --win:#22c55e; --loss:#f05252; --otl:#f59e0b;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  html { background:var(--bg); }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); min-height:100vh;
+         background:radial-gradient(1100px 420px at 50% -120px, rgba(24,75,154,.38), transparent 70%), var(--bg); }
 
   /* Ticker */
-  .ticker { background:#000; color:#fff; overflow-x:auto; white-space:nowrap; border-bottom:1px solid #222; scrollbar-width:thin; }
+  .ticker { background:#000; color:#fff; overflow-x:auto; white-space:nowrap; border-bottom:1px solid var(--line); scrollbar-width:thin; }
   .ticker-inner { display:inline-flex; padding:0 8px; }
-  .tgame { display:inline-block; min-width:158px; padding:10px 16px; border-right:1px solid #222; font-size:.78rem; vertical-align:top; }
-  .tgame .tdate { color:#9ca3af; font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+  .tgame { display:inline-block; min-width:158px; padding:10px 16px; border-right:1px solid #111c33; font-size:.78rem; vertical-align:top; }
+  .tgame .tdate { color:#7f93b8; font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
   .tgame .trow { display:flex; justify-content:space-between; gap:12px; font-weight:700; }
-  .tgame .trow.dim { color:#9ca3af; font-weight:500; }
+  .tgame .trow.dim { color:#8fa2c6; font-weight:500; }
   .tgame .tres { margin-top:4px; font-size:.66rem; font-weight:800; letter-spacing:.05em; }
-  .tres.W { color:var(--win); } .tres.L { color:var(--loss); } .tres.OTL { color:var(--otl); } .tres.T { color:#9ca3af; } .tres.up { color:#60a5fa; }
+  .tres.W { color:var(--win); } .tres.L { color:var(--loss); } .tres.OTL { color:var(--otl); } .tres.T { color:#9ca3af; } .tres.up { color:var(--blue-hi); }
   .tgame.upcoming .up-line { font-weight:700; margin:2px 0; }
 
   /* Header */
-  header { background:var(--navy); color:#fff; }
-  .top { max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:16px; padding:16px 20px; }
-  .crest { width:46px; height:46px; border-radius:50%; background:var(--accent); display:grid; place-items:center; font-weight:800; letter-spacing:.02em; flex-shrink:0; }
+  header { background:#000; color:#fff; border-bottom:3px solid var(--blue); }
+  .top { max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:16px; padding:14px 20px; }
+  .logo { height:64px; width:auto; max-width:130px; object-fit:contain; flex-shrink:0; }
+  .crest { display:none; width:56px; height:56px; border-radius:50%; background:var(--blue); place-items:center; font-weight:800; letter-spacing:.02em; flex-shrink:0; }
   .brand { flex:1; }
-  .brand h1 { font-size:1.25rem; font-weight:800; }
-  .brand p { font-size:.78rem; color:#9ca3af; }
-  .filter select { background:var(--navy-2); color:#fff; border:1px solid #2a3858; border-radius:8px; padding:8px 10px; font-size:.82rem; font-weight:600; }
-  nav { background:var(--navy-2); border-top:1px solid #1f2a44; }
+  .brand h1 { font-size:1.35rem; font-weight:800; letter-spacing:.01em; }
+  .brand p { font-size:.78rem; color:var(--muted); margin-top:2px; }
+  .filter select { background:#000; color:#fff; border:1px solid var(--blue); border-radius:8px; padding:8px 10px; font-size:.82rem; font-weight:600; }
+  nav { background:var(--blue); }
   .navin { max-width:1200px; margin:0 auto; display:flex; overflow-x:auto; padding:0 12px; }
-  nav button { background:none; border:0; color:#cbd5e1; font-size:.82rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
-               padding:14px 16px; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; }
+  nav button { background:none; border:0; color:rgba(255,255,255,.72); font-size:.82rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+               padding:14px 18px; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; }
   nav button:hover { color:#fff; }
-  nav button.active { color:#fff; border-bottom-color:var(--accent); }
+  nav button.active { color:#fff; border-bottom-color:#fff; }
 
   /* Layout */
   main { max-width:1200px; margin:0 auto; padding:20px; }
   .view { display:none; } .view.active { display:block; }
-  h2.sec { font-size:.8rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:26px 0 10px; }
+  h2.sec { font-size:.82rem; text-transform:uppercase; letter-spacing:.1em; color:var(--ink); border-left:4px solid var(--blue-2); padding-left:10px; margin:28px 0 12px; }
   h2.sec:first-child { margin-top:0; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
   .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; }
-  .toolbar input, .toolbar select { padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; background:#fff; }
+  .toolbar input, .toolbar select { padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; background:var(--card); color:var(--ink); }
+  .toolbar input::placeholder { color:var(--muted); }
   .note { font-size:.8rem; color:var(--muted); margin:0 2px 10px; }
   .note.after { margin:8px 2px 0; }
 
   /* Key metrics: always a single row (scrolls sideways on small screens) */
   .stats { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; scrollbar-width:thin; }
-  .stat { flex:1 1 0; min-width:108px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 10px; }
+  .stat { flex:1 1 0; min-width:108px; background:var(--card); border:1px solid var(--line); border-top:3px solid var(--blue-2); border-radius:10px; padding:12px 10px; }
   .stat.wide { flex:1.5 1 0; min-width:132px; }
   .stat .lbl { font-size:.62rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); white-space:nowrap; }
   .stat .val { font-size:1.35rem; font-weight:800; margin-top:4px; white-space:nowrap; }
 
   /* Leaders (every row uses the same font sizes) */
   .leaders { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
-  .leader h3 { background:var(--navy); color:#fff; font-size:.76rem; text-transform:uppercase; letter-spacing:.1em; padding:10px 14px; }
+  .leader h3 { background:var(--blue); color:#fff; font-size:.76rem; text-transform:uppercase; letter-spacing:.1em; padding:10px 14px; }
   .lrow { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line); font-size:.9rem; cursor:pointer; }
-  .lrow:hover { background:#eef4ff; }
+  .lrow:hover { background:var(--hover); }
   .lrow:last-child { border-bottom:0; }
   .lrow .rank { min-width:28px; color:var(--muted); font-weight:700; font-variant-numeric:tabular-nums; }
   .lrow .name { flex:1; font-weight:600; }
   .lrow .num { font-weight:800; font-variant-numeric:tabular-nums; }
-  .lrow.first { background:#f8fafc; }
+  .lrow.first { background:rgba(24,75,154,.22); }
+  .lrow.first:hover { background:var(--hover); }
 
   /* Tables */
   .tablewrap { overflow-x:auto; }
   table { width:100%; border-collapse:collapse; font-size:.88rem; }
-  th { background:var(--navy); color:#fff; text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em;
+  th { background:var(--blue); color:#fff; text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em;
        padding:11px 14px; cursor:pointer; white-space:nowrap; user-select:none; }
-  th:hover { background:#1a2740; }
-  th .arrow { margin-left:4px; opacity:.8; }
+  th:hover { background:var(--blue-2); }
+  th .arrow { margin-left:4px; opacity:.85; }
   th.num, td.num { text-align:right; }
   td { padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td.txt { font-weight:600; }
-  tbody tr:nth-child(even) { background:#f9fafb; }
-  tbody tr:hover { background:#eef4ff; }
+  tbody tr:nth-child(even) { background:var(--card-2); }
+  tbody tr:hover { background:var(--hover); }
   tr.click { cursor:pointer; }
   .badge { display:inline-block; min-width:36px; text-align:center; padding:2px 8px; border-radius:4px; font-size:.72rem; font-weight:800; color:#fff; }
-  .badge.W { background:var(--win); } .badge.L { background:var(--loss); } .badge.OTL { background:var(--otl); } .badge.T { background:#6b7280; }
+  .badge.W { background:#16a34a; } .badge.L { background:#dc2626; } .badge.OTL { background:#d97706; } .badge.T { background:#6b7280; }
   .pos { color:var(--win); font-weight:700; } .neg { color:var(--loss); font-weight:700; }
   .msg { padding:36px 20px; text-align:center; color:var(--muted); }
   .err { color:var(--loss); }
 
   /* Stats page jump links */
   .jump { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
-  .jump a { padding:6px 14px; border:1px solid var(--line); background:#fff; border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; color:var(--ink); }
-  .jump a:hover { border-color:var(--accent); color:var(--accent); }
+  .jump a { padding:6px 14px; border:1px solid var(--line); background:var(--card); border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; color:var(--ink); }
+  .jump a:hover { border-color:var(--blue-hi); color:var(--blue-hi); }
 
   /* Roster */
   .roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
-  .pcard { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .12s, box-shadow .12s; }
-  .pcard:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,.12); }
-  .pcard .hd { background:linear-gradient(135deg,var(--navy),#1b2a4a); color:#fff; padding:14px; display:flex; justify-content:space-between; align-items:flex-start; }
+  .pcard { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .12s, box-shadow .12s, border-color .12s; }
+  .pcard:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(24,75,154,.45); border-color:var(--blue-2); }
+  .pcard .hd { background:linear-gradient(135deg,#000 0%,var(--blue) 100%); color:#fff; padding:14px; display:flex; justify-content:space-between; align-items:flex-start; }
   .pcard .jn { font-size:2.1rem; font-weight:800; line-height:1; }
-  .pcard .pp { font-size:.7rem; font-weight:800; letter-spacing:.08em; background:rgba(255,255,255,.16); padding:3px 9px; border-radius:999px; }
+  .pcard .pp { font-size:.7rem; font-weight:800; letter-spacing:.08em; background:rgba(255,255,255,.18); padding:3px 9px; border-radius:999px; }
   .pcard .bd { padding:12px 14px; }
   .pcard .nm { font-weight:700; }
   .pcard .sub { font-size:.78rem; color:var(--muted); margin-top:2px; min-height:1em; }
@@ -105,15 +113,15 @@
   .pcard .mini b { color:var(--ink); }
 
   /* Modal */
-  .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow-y:auto; z-index:50; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow-y:auto; z-index:50; }
   .modal.open { display:flex; }
-  .modal-card { background:#fff; border-radius:12px; width:100%; max-width:760px; position:relative; overflow:hidden; }
+  .modal-card { background:var(--card); border:1px solid var(--line); border-radius:12px; width:100%; max-width:760px; position:relative; overflow:hidden; }
   .modal-card .close { position:absolute; top:10px; right:14px; background:none; border:0; color:#fff; font-size:1.8rem; cursor:pointer; line-height:1; }
-  .mhead { background:var(--navy); color:#fff; padding:20px; }
-  .mhead .mj { font-size:.9rem; color:#93c5fd; font-weight:700; }
+  .mhead { background:linear-gradient(135deg,#000 0%,var(--blue) 100%); color:#fff; padding:20px; }
+  .mhead .mj { font-size:.9rem; color:#a9c8ff; font-weight:700; }
   .mhead h2 { font-size:1.5rem; margin-top:2px; }
   .mtiles { display:flex; flex-wrap:wrap; gap:8px; padding:16px 20px 4px; }
-  .mtile { flex:1; min-width:70px; background:#f3f4f6; border-radius:8px; padding:10px; text-align:center; }
+  .mtile { flex:1; min-width:70px; background:var(--card-2); border:1px solid var(--line); border-radius:8px; padding:10px; text-align:center; }
   .mtile .l { font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
   .mtile .v { font-size:1.3rem; font-weight:800; }
   .mlog { padding:8px 0 4px; }
@@ -122,7 +130,9 @@
 
   @media (max-width:600px) {
     main { padding:12px; }
-    .top { padding:12px; gap:10px; }
+    .top { padding:10px 12px; gap:10px; }
+    .logo { height:48px; }
+    .brand h1 { font-size:1.1rem; }
     td, th { padding:9px 10px; }
   }
 </style>
@@ -133,9 +143,10 @@
 
 <header>
   <div class="top">
+    <img id="logo" class="logo" alt="Utah Dawgs logo">
     <div class="crest" id="crest">UD</div>
     <div class="brand"><h1 id="teamName"></h1><p id="seasonLabel"></p></div>
-    <div class="filter"><select id="typeFilter" title="Game type"></select></div>
+    <div class="filter" id="filterWrap"><select id="typeFilter" title="Game type"></select></div>
   </div>
   <nav><div class="navin" id="nav"></div></nav>
 </header>
@@ -196,7 +207,10 @@
 const CFG = {
   teamName: "Utah Dawgs",
   crestText: "UD",
-  season: "2025-26 Season",
+  season: "2026-27 Season",
+
+  // Logo file: upload it to the same folder as index.html in your GitHub repo
+  logo: "logo.png",
 
   sheetId: "1GAJflAWGoU1IDHfo6iZNgNLCzLzDGUVUpffetXVG71g",
 
@@ -230,6 +244,8 @@ const pimFmt = v => +Number(v).toFixed(1);
 const isBench = r => /bench/i.test(r.Player || "") || /bench/i.test(r.Jersey || "") || /bench/i.test(r.Position || "");
 const isGoalie = p => /^g/i.test(String(p.Position || "").trim());
 const handOf = p => p["Shoots/Catch"] ?? p.Shoots ?? "";
+// Roster filter groups: G = Goalies, D = Defensemen, anything else with a position = Forwards
+const groupOf = p => { const s = String(p.Position || "").trim(); return !s ? "" : /^g/i.test(s) ? "Goalies" : /^d/i.test(s) ? "Defensemen" : "Forwards"; };
 
 function ts(d, t) {
   const m = String(d || "").match(/(\d+)\/(\d+)\/(\d+)/);
@@ -496,14 +512,16 @@ function renderPenalties() {
 
 function renderRoster() {
   const players = D.roster.filter(p => !isBench(p));
-  const positions = [...new Set(players.map(p => p.Position).filter(Boolean))];
+  const groups = ["Forwards", "Defensemen", "Goalies"].filter(g => players.some(p => groupOf(p) === g));
   const sel = $("pos-filter");
-  sel.innerHTML = `<option value="">All positions</option>` + positions.map(x => `<option value="${esc(x)}"${x === posFilter ? " selected" : ""}>${esc(x)}</option>`).join("");
-  sel.style.display = positions.length > 1 ? "" : "none";
+  if (posFilter && !groups.includes(posFilter)) posFilter = "";
+  sel.innerHTML = `<option value="">All players</option>` + groups.map(x => `<option value="${x}"${x === posFilter ? " selected" : ""}>${x}</option>`).join("");
+  sel.style.display = groups.length > 1 ? "" : "none";
 
-  const sk = new Map(skaterAgg(D.skaters.filter(inType)).map(a => [a.Player, a]));
-  const go = new Map(goalieAgg(D.goalies.filter(inType)).map(a => [a.Player, a]));
-  const rows = players.filter(p => !posFilter || p.Position === posFilter).sort((a, b) => num(a.Jersey) - num(b.Jersey));
+  // Roster stats are full-season totals (the game-type filter is hidden on this page)
+  const sk = new Map(skaterAgg(D.skaters).map(a => [a.Player, a]));
+  const go = new Map(goalieAgg(D.goalies).map(a => [a.Player, a]));
+  const rows = players.filter(p => !posFilter || groupOf(p) === posFilter).sort((a, b) => num(a.Jersey) - num(b.Jersey));
   $("roster").innerHTML = rows.length ? rows.map(p => {
     const s = sk.get(p.Player), g = go.get(p.Player);
     const mini = s ? `<span>GP <b>${s.GP}</b></span><span>G <b>${s.G}</b></span><span>A <b>${s.A}</b></span><span>P <b>${s.P}</b></span>`
@@ -557,6 +575,7 @@ function buildNav() {
   const show = id => {
     document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + id));
     document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.v === id));
+    $("filterWrap").style.display = id === "roster" ? "none" : "";   // game-type filter hidden on Roster
     history.replaceState(null, "", "#" + id);
     window.scrollTo(0, 0);
   };
@@ -590,6 +609,12 @@ async function loadAll() {
   renderAll();
   $("footer").textContent = `Unofficial team stats site • Data from Google Sheets • Updated ${new Date().toLocaleTimeString([], { hour:"numeric", minute:"2-digit" })}`;
 }
+
+/* Logo (falls back to the "UD" circle if the image isn't found) + favicon */
+const logoEl = $("logo");
+logoEl.onerror = () => { logoEl.style.display = "none"; $("crest").style.display = "grid"; };
+logoEl.src = CFG.logo;
+const fav = document.createElement("link"); fav.rel = "icon"; fav.href = CFG.logo; document.head.appendChild(fav);
 
 $("teamName").textContent = CFG.teamName;
 $("crest").textContent = CFG.crestText;
