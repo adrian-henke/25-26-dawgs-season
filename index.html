@@ -53,6 +53,7 @@
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(15,26,46,.08); }
   .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; }
   .toolbar input, .toolbar select { padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; background:#fff; color:var(--ink); }
+  .toolbar input { flex:1 1 260px; max-width:440px; }
   .toolbar input::placeholder { color:var(--muted); }
   .note { font-size:.8rem; color:var(--muted); margin:0 2px 10px; }
   .note.after { margin:8px 2px 0; }
@@ -86,6 +87,7 @@
   th .arrow { margin-left:4px; opacity:.85; }
   th.num, td.num { text-align:right; }
   table.ctr th.num, table.ctr td.num { text-align:center; }   /* Stats page: numbers centered under their titles */
+  table th.mid, table td.mid { text-align:center; }           /* Columns centered on every page (Score, Result, Pos) */
   td { padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td.txt { font-weight:600; }
   tbody tr:nth-child(even) { background:var(--card-2); }
@@ -98,7 +100,7 @@
   .err { color:var(--loss); }
 
   /* Stats page jump links */
-  .jump { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+  .jump { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
   .jump a { padding:6px 14px; border:1px solid var(--line); background:#fff; border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; color:var(--ink); }
   .jump a:hover { border-color:var(--blue); color:var(--blue); }
 
@@ -181,8 +183,9 @@
       <a href="#" data-jump="sec-penalties">Penalties</a>
     </div>
 
+    <div class="toolbar"><input id="search-stats" placeholder="Search players (skaters, goalies & penalties)..."></div>
+
     <h2 class="sec" id="sec-skaters">Skaters</h2>
-    <div class="toolbar"><input id="search-skaters" placeholder="Search players..."></div>
     <div class="card"><div class="tablewrap" id="tbl-skaters"></div></div>
 
     <h2 class="sec" id="sec-goalies">Goalies</h2>
@@ -248,19 +251,31 @@ const pimFmt = v => +Number(v).toFixed(1);
 
 const isBench = r => /bench/i.test(r.Player || "") || /bench/i.test(r.Jersey || "") || /bench/i.test(r.Position || "");
 const isGoalie = p => /^g/i.test(String(p.Position || "").trim());
-const handOf = p => p["Shoots/Catch"] ?? p.Shoots ?? "";
+const handOf = p => { const k = Object.keys(p || {}).find(k => /shoot|catch/i.test(k)); return k ? p[k] : ""; };
+const isCatch = p => isGoalie(p) || /^(regular|full)/i.test(handOf(p));   // goalies: Regular / Full Right
 // Roster filter groups: G = Goalies, D = Defensemen, anything else with a position = Forwards
 const groupOf = p => { const s = String(p.Position || "").trim(); return !s ? "" : /^g/i.test(s) ? "Goalies" : /^d/i.test(s) ? "Defensemen" : "Forwards"; };
+
+// Tournament rows: "T" in the Game column; Rink holds "Tournament name | City, ST"
+const isT = g => String(g.Game || "").trim().toUpperCase() === "T";
+const splitRink = r => { const s = String(r || ""); const i = s.indexOf("|"); return i < 0 ? [s.trim(), ""] : [s.slice(0, i).trim(), s.slice(i + 1).trim()]; };
 
 function ts(d, t) {
   const m = String(d || "").match(/(\d+)\/(\d+)\/(\d+)/);
   if (!m) return 0;
+  let y = +m[3]; if (y < 100) y += 2000;
   let h = 0, mi = 0;
   const tm = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)?/i);
   if (tm) { h = (+tm[1]) % 12; if ((tm[3] || "").toUpperCase() === "PM") h += 12; mi = +tm[2]; }
-  return new Date(+m[3], +m[1] - 1, +m[2], h, mi).getTime();
+  return new Date(y, +m[1] - 1, +m[2], h, mi).getTime();
 }
-const shortDate = d => { const t = ts(d); return t ? new Date(t).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : d; };
+// Shows the year only when it differs from the current year (e.g. games in 2027)
+const shortDate = d => {
+  const t = ts(d); if (!t) return d;
+  const dt = new Date(t), o = { month:"short", day:"numeric" };
+  if (dt.getFullYear() !== new Date().getFullYear()) o.year = "numeric";
+  return dt.toLocaleDateString("en-US", o);
+};
 
 function parseCSV(text) {
   const rows = []; let row = [], cur = "", q = false;
@@ -286,8 +301,9 @@ async function loadTab(name) {
   return rows.slice(1).map(r => Object.fromEntries(headers.map((h, i) => [h, (r[i] ?? "").trim()])));
 }
 
-/* Sortable table. cols: {k, l, n (numeric), f (custom cell html)}
-   options: sort/asc (default sort), then (tie-break column, high to low), center (center numeric columns), player (click-through key) */
+/* Sortable table. cols: {k, l, n (numeric), mid (centered on every page), f (custom cell html)}
+   options: sort/asc (default sort), then (tie-break column, high to low), center (center numeric columns),
+            player (click-through key), empty (message or function returning one) */
 function table(el, cols, rows, o = {}) {
   let sk = o.sort || null, asc = !!o.asc, view = [];
   const draw = () => {
@@ -304,11 +320,14 @@ function table(el, cols, rows, o = {}) {
       if (!r && o.then) r = (+b[o.then] || 0) - (+a[o.then] || 0);
       return r;
     });
-    if (!view.length) { el.innerHTML = `<div class="msg">${o.empty || "No data yet."}</div>`; return; }
+    if (!view.length) {
+      const em = typeof o.empty === "function" ? o.empty() : o.empty;
+      el.innerHTML = `<div class="msg">${em || "No data yet."}</div>`; return;
+    }
     el.innerHTML = `<table${o.center ? ' class="ctr"' : ""}><thead><tr>${cols.map(c =>
-      `<th data-k="${c.k}" class="${c.n ? "num" : ""}">${c.l}<span class="arrow">${c.k === sk ? (asc ? "▲" : "▼") : ""}</span></th>`).join("")}</tr></thead>
+      `<th data-k="${c.k}" class="${(c.n ? "num " : "") + (c.mid ? "mid" : "")}">${c.l}<span class="arrow">${c.k === sk ? (asc ? "▲" : "▼") : ""}</span></th>`).join("")}</tr></thead>
       <tbody>${view.map(r => `<tr${o.player && !r._bench ? ` class="click" data-player="${esc(r[o.player])}"` : ""}>${cols.map(c =>
-        `<td class="${c.n ? "num" : "txt"}">${c.f ? c.f(r) : esc(r[c.k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+        `<td class="${(c.n ? "num" : "txt") + (c.mid ? " mid" : "")}">${c.f ? c.f(r) : esc(r[c.k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     el.querySelectorAll("th").forEach(th => th.onclick = () => {
       const k = th.dataset.k, cc = cols.find(c => c.k === k);
       if (sk === k) asc = !asc; else { sk = k; asc = !cc.n; }
@@ -325,7 +344,7 @@ function table(el, cols, rows, o = {}) {
 const D = { team:[], skaters:[], penalties:[], goalies:[], roster:[] };
 let typeFilter = "", posFilter = "", PM_KEY = "Plus/Minus";
 let POS = new Map();
-let skaterTable = null, skaterRows = [];
+const SK = { t:null, rows:[] }, GO = { t:null, rows:[] }, PEN = { t:null, rows:[] };
 
 function detectColumns() {
   const k = Object.keys(D.skaters[0] || {}).find(k => /plus|\+\s*\/\s*-|±/i.test(k));
@@ -333,18 +352,25 @@ function detectColumns() {
 }
 
 function prepGames(rows) {
+  const today0 = new Date(); today0.setHours(0, 0, 0, 0);
   return rows.map(g => {
     const r = String(g.Result || "").toUpperCase().trim();
     const ot = bool(g.OT) || bool(g.Shootout);
     let code = "";
     if (r) code = r.startsWith("W") ? "W" : r.startsWith("T") ? "T" : (r === "OTL" || r === "SOL") ? "OTL" : (ot ? "OTL" : "L");
     const suffix = bool(g.Shootout) ? " (SO)" : bool(g.OT) ? " (OT)" : "";
-    return { ...g, _ts: ts(g.Date, g.Time), _gm: num(g.Game), _code: code, _played: code !== "", _suffix: suffix };
+    return { ...g, _ts: ts(g.Date, g.Time), _gm: num(g.Game), _code: code, _played: code !== "", _suffix: suffix,
+             _tourn: isT(g), _future: ts(g.Date) >= today0.getTime() };
   }).sort((a, b) => a._ts - b._ts || a._gm - b._gm);
 }
 const inType = r => !typeFilter || r.Type === typeFilter;
+// Upcoming = no result yet (tournament placeholders only count while their date hasn't passed)
+const upcomingGames = () => D.team.filter(g => !g._played && (!g._tourn || g._future));
 const badge = g => g._played ? `<span class="badge ${g._code}">${g._code}${g._code === "W" ? esc(g._suffix) : ""}</span>` : "—";
-const vs = g => (String(g["Home/Away"]).toLowerCase().startsWith("a") ? "@ " : "vs ") + esc(g.Opponent);
+const vs = g => {
+  const away = String(g["Home/Away"]).toLowerCase().startsWith("a");
+  return (away ? "@ " : g._tourn ? "" : "vs ") + esc(g.Opponent);
+};
 
 /* ----- Aggregations (every tab is summed per player) ----- */
 function skaterAgg(rows) {
@@ -384,22 +410,43 @@ function penaltyAgg(rows) {
   return [...m.values()].map(a => ({ ...a, JN: a._bench ? null : num(a.Jersey), PIM: pimFmt(a.PIM), Common: [...a.types.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || "" }));
 }
 
+/* ----- Player search (applies to skaters, goalies and penalties) ----- */
+const searchQ = () => ($("search-stats").value || "").trim().toLowerCase();
+const hit = r => { const q = searchQ(); return !q || String(r.Player).toLowerCase().includes(q) || String(r.Jersey || "").toLowerCase().includes(q); };
+const searchEmpty = fallback => () => searchQ() ? "No players match your search." : fallback;
+function applySearch() {
+  if (SK.t) SK.t.setRows(SK.rows.filter(hit));
+  if (GO.t) GO.t.setRows(GO.rows.filter(hit));
+  if (PEN.t) PEN.t.setRows(PEN.rows.filter(hit));
+}
+
 /* =====================================================
    RENDER
    ===================================================== */
 function renderTicker() {
   const played = D.team.filter(g => g._played).slice(-8);
-  const upcoming = D.team.filter(g => !g._played).slice(0, 4);
+  const upcoming = upcomingGames();          // every upcoming game, as far out as the schedule goes
   const res = played.map(g => `<div class="tgame">
       <div class="tdate">${esc(shortDate(g.Date))} &bull; Final${esc(g._suffix)}</div>
       <div class="trow"><span>${esc(CFG.teamName)}</span><span>${esc(g.GF)}</span></div>
       <div class="trow dim"><span>${vs(g)}</span><span>${esc(g.GA)}</span></div>
       <div class="tres ${g._code}">${g._code === "W" ? "WIN" : g._code === "L" ? "LOSS" : g._code}</div></div>`).join("");
-  const up = upcoming.map((g, i) => `<div class="tgame upcoming${i === 0 ? " next" : ""}">
-      <div class="tdate">${esc(shortDate(g.Date))} &bull; ${esc(g.Time)}</div>
+  const up = upcoming.map((g, i) => {
+    const when = esc(shortDate(g.Date)) + (g.Time ? ` &bull; ${esc(g.Time)}` : "");
+    const cls = `tgame upcoming${i === 0 ? " next" : ""}`;
+    if (g._tourn) {
+      // Tournament: name (left of |) replaces the team name, location (right of |) replaces the opponent
+      const [name, loc] = splitRink(g.Rink);
+      return `<div class="${cls}"><div class="tdate">${when}</div>
+        <div class="up-line">${esc(name || "Tournament")}</div>
+        <div class="trow dim"><span>${esc(loc) || "&nbsp;"}</span></div>
+        <div class="tres up">UPCOMING</div></div>`;
+    }
+    return `<div class="${cls}"><div class="tdate">${when}</div>
       <div class="up-line">${esc(CFG.teamName)}</div>
       <div class="trow dim"><span>${vs(g)}</span></div>
-      <div class="tres up">UPCOMING</div></div>`).join("");
+      <div class="tres up">UPCOMING</div></div>`;
+  }).join("");
   $("ticker").innerHTML = res + up || `<div class="tgame"><div class="tdate">No games yet</div></div>`;
   const nx = document.querySelector(".tgame.next");
   if (nx) $("ticker").parentElement.scrollLeft = Math.max(0, nx.offsetLeft - 330);
@@ -441,7 +488,7 @@ function renderHome() {
   table($("upcoming"), [
     { k:"Date", l:"Date", f:g => esc(shortDate(g.Date)) }, { k:"Time", l:"Time" },
     { k:"Opponent", l:"Opponent", f:g => vs(g) }, { k:"Rink", l:"Rink" }, { k:"Type", l:"Type" }
-  ], D.team.filter(g => !g._played).slice(0, 3), { empty:"No upcoming games scheduled." });
+  ], upcomingGames().slice(0, 3), { empty:"No upcoming games scheduled." });
 
   const sk = skaterAgg(D.skaters.filter(inType)), go = goalieAgg(D.goalies.filter(inType));
   $("leaders").innerHTML =
@@ -463,8 +510,8 @@ function scheduleCols() {
     { k:"Time", l:"Time" },
     { k:"Opponent", l:"Opponent", f:g => vs(g) },
     { k:"Rink", l:"Rink" },
-    { k:"GF", l:"Score", n:true, f:g => g._played ? `${esc(g.GF)} – ${esc(g.GA)}` : "—" },
-    { k:"_code", l:"Result", f:g => badge(g) },
+    { k:"GF", l:"Score", n:true, mid:true, f:g => g._played ? `${esc(g.GF)} – ${esc(g.GA)}` : "—" },
+    { k:"_code", l:"Result", mid:true, f:g => badge(g) },
     { k:"Type", l:"Type" }
   ];
 }
@@ -474,54 +521,48 @@ function renderSchedule() {
 }
 
 function renderSkaters() {
-  skaterRows = skaterAgg(D.skaters.filter(inType)).map(r => ({ ...r, Pos: POS.get(r.Player) || "" }));
+  SK.rows = skaterAgg(D.skaters.filter(inType)).map(r => ({ ...r, Pos: POS.get(r.Player) || "" }));
   const cols = [
     { k:"Player", l:"Player" },
-    { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"Pos", l:"Pos" },
+    { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"Pos", l:"Pos", mid:true },
     { k:"GP", l:"GP", n:true }, { k:"G", l:"G", n:true }, { k:"A", l:"A", n:true },
     { k:"P", l:"P", n:true, f:r => `<b>${r.P}</b>` },
     { k:"PM", l:"+/-", n:true, f:r => pm(r.PM) },
     { k:"PPG", l:"P/GP", n:true, f:r => `<b>${r.PPG.toFixed(2)}</b>` }
   ];
   // Default sort: points per game (ties broken by total points)
-  skaterTable = table($("tbl-skaters"), cols, skaterRows, { sort:"PPG", then:"P", player:"Player", center:true });
-  $("search-skaters").oninput = applySkaterSearch;
-  applySkaterSearch();
-}
-function applySkaterSearch() {
-  const q = $("search-skaters").value.toLowerCase();
-  skaterTable.setRows(skaterRows.filter(r => r.Player.toLowerCase().includes(q) || String(r.Jersey).includes(q)));
+  SK.t = table($("tbl-skaters"), cols, SK.rows.filter(hit), { sort:"PPG", then:"P", player:"Player", center:true, empty:searchEmpty("No data yet.") });
 }
 
 function renderGoalies() {
-  const rows = goalieAgg(D.goalies.filter(inType));
+  GO.rows = goalieAgg(D.goalies.filter(inType));
   // Default sort: goals against average, lowest first (ties broken by wins)
-  table($("tbl-goalies"), [
+  GO.t = table($("tbl-goalies"), [
     { k:"Player", l:"Goalie" }, { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"GP", l:"GP", n:true },
     { k:"W", l:"W", n:true }, { k:"L", l:"L", n:true }, { k:"T", l:"T", n:true }, { k:"OTL", l:"OTL", n:true },
     { k:"GA", l:"GA", n:true }, { k:"MIN", l:"MIN", n:true },
     { k:"GAA", l:"GAA", n:true, f:r => r.GAA === null ? "—" : `<b>${r.GAA.toFixed(2)}</b>` },
     { k:"SO", l:"SO", n:true }
-  ], rows, { sort:"GAA", asc:true, then:"W", player:"Player", center:true });
+  ], GO.rows.filter(hit), { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:searchEmpty("No data yet.") });
   $("goalie-note").textContent = `GAA is goals against per ${CFG.gameMinutes} minutes (one full game).`;
 }
 
 function renderPenalties() {
   const raw = D.penalties.filter(inType);
-  const rows = penaltyAgg(raw);
+  PEN.rows = penaltyAgg(raw);
   const total = raw.reduce((s, r) => s + num(r.PIM), 0);
   const bench = raw.filter(isBench);
   const benchPIM = bench.reduce((s, r) => s + num(r.PIM), 0);
   $("pen-summary").textContent = raw.length
     ? `Team total: ${raw.length} penalties, ${pimFmt(total)} PIM (includes ${bench.length} bench ${bench.length === 1 ? "penalty" : "penalties"}, ${pimFmt(benchPIM)} PIM).`
     : "";
-  table($("tbl-penalties"), [
+  PEN.t = table($("tbl-penalties"), [
     { k:"Player", l:"Player" },
     { k:"JN", l:"Jersey", n:true, f:r => r._bench ? "—" : esc(r.Jersey) },
     { k:"PEN", l:"Penalties", n:true },
     { k:"PIM", l:"PIM", n:true, f:r => `<b>${r.PIM}</b>` },
     { k:"Common", l:"Most Common" }
-  ], rows, { sort:"PIM", player:"Player", center:true, empty:"No penalties recorded." });
+  ], PEN.rows.filter(hit), { sort:"PIM", player:"Player", center:true, empty:searchEmpty("No penalties recorded.") });
 }
 
 function renderRoster() {
@@ -541,7 +582,8 @@ function renderRoster() {
     const mini = s ? `<span>GP <b>${s.GP}</b></span><span>G <b>${s.G}</b></span><span>A <b>${s.A}</b></span><span>P <b>${s.P}</b></span>`
                : g ? `<span>GP <b>${g.GP}</b></span><span>W <b>${g.W}</b></span><span>GAA <b>${g.GAA === null ? "—" : g.GAA.toFixed(2)}</b></span>` : "";
     const hand = handOf(p);
-    const handLine = hand ? `${isGoalie(p) ? "Catches" : "Shoots"} ${esc(hand)}` : "&nbsp;";
+    // Goalies show just the catch value (Regular / Full Right); skaters show "Shoots L/R"
+    const handLine = hand ? (isCatch(p) ? esc(hand) : `Shoots ${esc(hand)}`) : "&nbsp;";
     return `<div class="pcard" data-player="${esc(p.Player)}">
       <div class="hd"><div class="jn">${esc(p.Jersey || "#")}</div>${p.Position ? `<div class="pp">${esc(p.Position)}</div>` : ""}</div>
       <div class="bd"><div class="nm">${esc(p.Player)}</div><div class="sub">${handLine}</div><div class="mini">${mini}</div></div></div>`;
@@ -573,7 +615,9 @@ function openPlayer(name) {
   } else tiles = `<div class="msg" style="width:100%">No game stats yet.</div>`;
   const pens = D.penalties.filter(r => r.Player === name);
   const penLine = pens.length ? `<p class="note" style="padding:8px 20px 0">Penalties: ${pens.length} for ${pimFmt(pens.reduce((s, r) => s + num(r.PIM), 0))} PIM</p>` : "";
-  const sub = [jersey, ro?.Position, handOf(ro || {}) ? `${ro && isGoalie(ro) ? "Catches" : "Shoots"} ${handOf(ro)}` : ""].filter(Boolean).map(esc).join(" &bull; ");
+  const hand = handOf(ro || {});
+  const handTxt = hand ? (isCatch(ro) ? hand : `Shoots ${hand}`) : "";
+  const sub = [jersey, ro?.Position, handTxt].filter(Boolean).map(esc).join(" &bull; ");
   $("mbody").innerHTML = `<div class="mhead"><div class="mj">${sub}</div><h2>${esc(name)}</h2></div>
     <div class="mtiles">${tiles}</div>${penLine}<div class="mlog">${log}</div>`;
   $("modal").classList.add("open");
@@ -635,6 +679,7 @@ $("crest").textContent = CFG.crestText;
 $("seasonLabel").textContent = CFG.season;
 $("typeFilter").onchange = e => { typeFilter = e.target.value; renderAll(); };
 $("pos-filter").onchange = e => { posFilter = e.target.value; renderRoster(); };
+$("search-stats").oninput = applySearch;
 document.addEventListener("click", e => {
   const j = e.target.closest("[data-jump]");
   if (j) { e.preventDefault(); $(j.dataset.jump).scrollIntoView({ behavior:"smooth", block:"start" }); return; }
