@@ -1,30 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>25-26 Utah Dawgs Season</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: black;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>25-26 Utah Dawgs Season</title>
+  <style>
+    :root {
+      --bg: #0f1420;
+      --panel: #171e2e;
+      --text: #f2f5fa;
+      --muted: #9aa6bd;
+      --accent: #4da3ff;
+      --border: #263049;
+      --header-h: 64px;
+    }
 
-        iframe {
-            border: none;
-            width: 100vw; /* Full viewport width */
-            height: 100vh; /* Full viewport height */
-        }
-    </style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    header {
+      height: var(--header-h);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .title h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .title p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .actions a {
+      display: inline-block;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+
+    .actions a:hover { background: var(--accent); color: #0b1020; }
+
+    main {
+      flex: 1;
+      position: relative;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .frame-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 500px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 0.9rem;
+      transition: opacity 0.4s;
+      z-index: 1;
+    }
+
+    .loader.hidden { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) {
+      :root { --header-h: 56px; }
+      header { padding: 0 14px; }
+      .title p { display: none; }
+      main { padding: 8px; }
+      .frame-wrap { border-radius: 8px; min-height: 400px; }
+    }
+
+    /* Dashboards are wide; on phones, hint that landscape works better */
+    .rotate-tip {
+      display: none;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 6px 0 10px;
+    }
+
+    @media (max-width: 600px) and (orientation: portrait) {
+      .rotate-tip { display: block; }
+    }
+  </style>
 </head>
 <body>
-    <iframe 
-        src="https://lookerstudio.google.com/embed/reporting/a00345f1-f689-474f-a4de-457951286fc0/page/4G4TE" 
-        allowfullscreen>
-    </iframe>
+
+  <header>
+    <div class="title">
+      <h1>25-26 Utah Dawgs Season</h1>
+      <p>Interactive season dashboard</p>
+    </div>
+    <div class="actions">
+      <a href="https://lookerstudio.google.com/reporting/a00345f1-f689-474f-a4de-457951286fc0/page/4G4TE"
+         target="_blank" rel="noopener">Open full screen &#8599;</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="frame-wrap">
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <span>Loading dashboard&hellip;</span>
+      </div>
+      <iframe
+        title="25-26 Utah Dawgs Season Dashboard"
+        src="https://lookerstudio.google.com/embed/reporting/a00345f1-f689-474f-a4de-457951286fc0/page/4G4TE"
+        allowfullscreen
+        sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        onload="document.getElementById('loader').classList.add('hidden')">
+      </iframe>
+    </div>
+    <div class="rotate-tip">Tip: rotate your phone to landscape for a better view.</div>
+  </main>
+
 </body>
 </html>
