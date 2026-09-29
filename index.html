@@ -1,180 +1,564 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>25-26 Utah Dawgs Season</title>
-  <style>
-    :root {
-      --bg: #0f1420;
-      --panel: #171e2e;
-      --text: #f2f5fa;
-      --muted: #9aa6bd;
-      --accent: #4da3ff;
-      --border: #263049;
-      --header-h: 64px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>25-26 Utah Dawgs Season</title>
+<style>
+  :root {
+    --navy:#0b1220; --navy-2:#141d31; --ink:#111827; --muted:#6b7280; --line:#e5e7eb;
+    --bg:#f3f4f6; --card:#fff; --accent:#1e6bff; --win:#16a34a; --loss:#dc2626; --otl:#d97706;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Ticker */
+  .ticker { background:#000; color:#fff; overflow-x:auto; white-space:nowrap; border-bottom:1px solid #222; scrollbar-width:thin; }
+  .ticker-inner { display:inline-flex; padding:0 8px; }
+  .tgame { display:inline-block; min-width:158px; padding:10px 16px; border-right:1px solid #222; font-size:.78rem; vertical-align:top; }
+  .tgame .tdate { color:#9ca3af; font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+  .tgame .trow { display:flex; justify-content:space-between; gap:12px; font-weight:700; }
+  .tgame .trow.dim { color:#9ca3af; font-weight:500; }
+  .tgame .tres { margin-top:4px; font-size:.66rem; font-weight:800; letter-spacing:.05em; }
+  .tres.W { color:var(--win); } .tres.L { color:var(--loss); } .tres.OTL { color:var(--otl); } .tres.T { color:#9ca3af; } .tres.up { color:#60a5fa; }
+  .tgame.upcoming .up-line { font-weight:700; margin:2px 0; }
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+  /* Header */
+  header { background:var(--navy); color:#fff; }
+  .top { max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:16px; padding:16px 20px; }
+  .crest { width:46px; height:46px; border-radius:50%; background:var(--accent); display:grid; place-items:center; font-weight:800; letter-spacing:.02em; flex-shrink:0; }
+  .brand { flex:1; }
+  .brand h1 { font-size:1.25rem; font-weight:800; }
+  .brand p { font-size:.78rem; color:#9ca3af; }
+  .filter select { background:var(--navy-2); color:#fff; border:1px solid #2a3858; border-radius:8px; padding:8px 10px; font-size:.82rem; font-weight:600; }
+  nav { background:var(--navy-2); border-top:1px solid #1f2a44; }
+  .navin { max-width:1200px; margin:0 auto; display:flex; overflow-x:auto; padding:0 12px; }
+  nav button { background:none; border:0; color:#cbd5e1; font-size:.82rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+               padding:14px 16px; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; }
+  nav button:hover { color:#fff; }
+  nav button.active { color:#fff; border-bottom-color:var(--accent); }
 
-    body {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      min-height: 100dvh;
-    }
+  /* Layout */
+  main { max-width:1200px; margin:0 auto; padding:20px; }
+  .view { display:none; } .view.active { display:block; }
+  h2.sec { font-size:.8rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:26px 0 10px; }
+  h2.sec:first-child { margin-top:0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; }
+  .toolbar input, .toolbar select { padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; background:#fff; }
+  .note { font-size:.78rem; color:var(--muted); margin:8px 2px 0; }
 
-    header {
-      height: var(--header-h);
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 0 24px;
-      background: var(--panel);
-      border-bottom: 1px solid var(--border);
-    }
+  /* Stat tiles */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .stat .lbl { font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .stat .val { font-size:1.8rem; font-weight:800; margin-top:4px; }
 
-    .title h1 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
+  /* Leaders */
+  .leaders { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+  .leader h3 { background:var(--navy); color:#fff; font-size:.76rem; text-transform:uppercase; letter-spacing:.1em; padding:10px 14px; }
+  .lrow { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line); font-size:.9rem; cursor:pointer; }
+  .lrow:hover { background:#eef4ff; }
+  .lrow:last-child { border-bottom:0; }
+  .lrow .rank { width:18px; color:var(--muted); font-weight:700; }
+  .lrow .name { flex:1; font-weight:600; }
+  .lrow .num { font-weight:800; }
+  .lrow.first { background:#f8fafc; }
+  .lrow.first .name { font-size:1rem; }
+  .lrow.first .num { font-size:1.2rem; color:var(--accent); }
 
-    .title p {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
+  /* Tables */
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th { background:var(--navy); color:#fff; text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em;
+       padding:11px 14px; cursor:pointer; white-space:nowrap; user-select:none; }
+  th:hover { background:#1a2740; }
+  th .arrow { margin-left:4px; opacity:.8; }
+  th.num, td.num { text-align:right; }
+  td { padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  td.txt { font-weight:600; }
+  tbody tr:nth-child(even) { background:#f9fafb; }
+  tbody tr:hover { background:#eef4ff; }
+  tr.click { cursor:pointer; }
+  .badge { display:inline-block; min-width:36px; text-align:center; padding:2px 8px; border-radius:4px; font-size:.72rem; font-weight:800; color:#fff; }
+  .badge.W { background:var(--win); } .badge.L { background:var(--loss); } .badge.OTL { background:var(--otl); } .badge.T { background:#6b7280; }
+  .pos { color:var(--win); font-weight:700; } .neg { color:var(--loss); font-weight:700; }
+  .msg { padding:36px 20px; text-align:center; color:var(--muted); }
+  .err { color:var(--loss); }
 
-    .actions a {
-      display: inline-block;
-      padding: 8px 14px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text);
-      text-decoration: none;
-      border: 1px solid var(--accent);
-      border-radius: 8px;
-      transition: background 0.15s;
-    }
+  /* Roster */
+  .roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+  .pcard { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .12s, box-shadow .12s; }
+  .pcard:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,.12); }
+  .pcard .hd { background:linear-gradient(135deg,var(--navy),#1b2a4a); color:#fff; padding:14px; }
+  .pcard .jn { font-size:2.1rem; font-weight:800; line-height:1; }
+  .pcard .bd { padding:12px 14px; }
+  .pcard .nm { font-weight:700; }
+  .pcard .sub { font-size:.78rem; color:var(--muted); margin-top:2px; }
+  .pcard .mini { display:flex; gap:12px; margin-top:8px; font-size:.78rem; color:var(--muted); }
+  .pcard .mini b { color:var(--ink); }
 
-    .actions a:hover { background: var(--accent); color: #0b1020; }
+  /* Embed */
+  .embed { position:relative; height:82vh; min-height:520px; }
+  .embed iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
 
-    main {
-      flex: 1;
-      position: relative;
-      padding: 16px;
-      min-height: 0;
-    }
+  /* Modal */
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow-y:auto; z-index:50; }
+  .modal.open { display:flex; }
+  .modal-card { background:#fff; border-radius:12px; width:100%; max-width:760px; position:relative; overflow:hidden; }
+  .modal-card .close { position:absolute; top:10px; right:14px; background:none; border:0; color:#fff; font-size:1.8rem; cursor:pointer; line-height:1; }
+  .mhead { background:var(--navy); color:#fff; padding:20px; }
+  .mhead .mj { font-size:.9rem; color:#93c5fd; font-weight:700; }
+  .mhead h2 { font-size:1.5rem; margin-top:2px; }
+  .mtiles { display:flex; flex-wrap:wrap; gap:8px; padding:16px 20px 4px; }
+  .mtile { flex:1; min-width:70px; background:#f3f4f6; border-radius:8px; padding:10px; text-align:center; }
+  .mtile .l { font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .mtile .v { font-size:1.3rem; font-weight:800; }
+  .mlog { padding:8px 0 4px; }
 
-    .frame-wrap {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      min-height: 500px;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-    }
+  footer { text-align:center; color:var(--muted); font-size:.75rem; padding:30px 0 40px; }
 
-    iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-
-    .loader {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      background: var(--panel);
-      color: var(--muted);
-      font-size: 0.9rem;
-      transition: opacity 0.4s;
-      z-index: 1;
-    }
-
-    .loader.hidden { opacity: 0; pointer-events: none; }
-
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    @media (max-width: 600px) {
-      :root { --header-h: 56px; }
-      header { padding: 0 14px; }
-      .title p { display: none; }
-      main { padding: 8px; }
-      .frame-wrap { border-radius: 8px; min-height: 400px; }
-    }
-
-    /* Dashboards are wide; on phones, hint that landscape works better */
-    .rotate-tip {
-      display: none;
-      text-align: center;
-      font-size: 0.75rem;
-      color: var(--muted);
-      padding: 6px 0 10px;
-    }
-
-    @media (max-width: 600px) and (orientation: portrait) {
-      .rotate-tip { display: block; }
-    }
-  </style>
+  @media (max-width:600px) {
+    main { padding:12px; }
+    .top { padding:12px; gap:10px; }
+    .stat .val { font-size:1.45rem; }
+    td, th { padding:9px 10px; }
+    .embed { height:75vh; }
+  }
+</style>
 </head>
 <body>
 
-  <header>
-    <div class="title">
-      <h1>25-26 Utah Dawgs Season</h1>
-      <p>Interactive season dashboard</p>
-    </div>
-    <div class="actions">
-      <a href="https://lookerstudio.google.com/reporting/a00345f1-f689-474f-a4de-457951286fc0/page/4G4TE"
-         target="_blank" rel="noopener">Open full screen &#8599;</a>
-    </div>
-  </header>
+<div class="ticker"><div class="ticker-inner" id="ticker"></div></div>
 
-  <main>
-    <div class="frame-wrap">
-      <div class="loader" id="loader">
-        <div class="spinner"></div>
-        <span>Loading dashboard&hellip;</span>
-      </div>
-      <iframe
-        title="25-26 Utah Dawgs Season Dashboard"
+<header>
+  <div class="top">
+    <div class="crest" id="crest">UD</div>
+    <div class="brand"><h1 id="teamName"></h1><p id="seasonLabel"></p></div>
+    <div class="filter"><select id="typeFilter" title="Game type"></select></div>
+  </div>
+  <nav><div class="navin" id="nav"></div></nav>
+</header>
+
+<main>
+  <div id="banner"></div>
+
+  <section class="view active" id="view-home">
+    <div class="stats" id="stats"></div>
+    <h2 class="sec">Next Up</h2>
+    <div class="card"><div class="tablewrap" id="upcoming"></div></div>
+    <h2 class="sec">Team Leaders</h2>
+    <div class="leaders" id="leaders"></div>
+    <h2 class="sec">Recent Results</h2>
+    <div class="card"><div class="tablewrap" id="recent"></div></div>
+  </section>
+
+  <section class="view" id="view-schedule"><div class="card"><div class="tablewrap" id="tbl-schedule"></div></div></section>
+
+  <section class="view" id="view-skaters">
+    <div class="toolbar"><input id="search-skaters" placeholder="Search players..."></div>
+    <div class="card"><div class="tablewrap" id="tbl-skaters"></div></div>
+  </section>
+
+  <section class="view" id="view-goalies">
+    <div class="card"><div class="tablewrap" id="tbl-goalies"></div></div>
+    <p class="note" id="goalie-note"></p>
+  </section>
+
+  <section class="view" id="view-penalties">
+    <div class="toolbar">
+      <select id="pen-team"><option value="all">All players</option><option value="Dawgs">Dawgs only</option><option value="Opp">Opponents only</option></select>
+    </div>
+    <div class="card"><div class="tablewrap" id="tbl-penalties"></div></div>
+  </section>
+
+  <section class="view" id="view-roster"><div class="roster" id="roster"></div></section>
+
+  <section class="view" id="view-dashboard">
+    <div class="card embed">
+      <iframe title="Season dashboard"
         src="https://lookerstudio.google.com/embed/reporting/a00345f1-f689-474f-a4de-457951286fc0/page/4G4TE"
         allowfullscreen
-        sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-        onload="document.getElementById('loader').classList.add('hidden')">
-      </iframe>
+        sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
     </div>
-    <div class="rotate-tip">Tip: rotate your phone to landscape for a better view.</div>
-  </main>
+  </section>
+</main>
 
+<footer id="footer">Unofficial team stats site</footer>
+
+<div class="modal" id="modal"><div class="modal-card"><button class="close" id="mclose">&times;</button><div id="mbody"></div></div></div>
+
+<script>
+/* =====================================================
+   CONFIG - the only part you should need to edit
+   ===================================================== */
+const CFG = {
+  teamName: "Utah Dawgs",
+  crestText: "UD",
+  season: "2025-26 Season",
+
+  // The long ID in your sheet's URL: docs.google.com/spreadsheets/d/THIS_PART/edit
+  sheetId: "PASTE_YOUR_SHEET_ID_HERE",
+
+  // Exact tab names (case-sensitive)
+  tabs: { team:"Team Stats", skaters:"Skater Stats", penalties:"Penalty Stats", goalies:"Goalie Stats", roster:"Roster" },
+
+  // Game length in minutes, used for goals-against average.
+  // (Your goalies show 19.5 min each in a game, so two goalies = 39 minutes.)
+  gameMinutes: 39,
+
+  refreshMinutes: 5
+};
+
+/* =====================================================
+   HELPERS
+   ===================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = v => { const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, "")); return isNaN(n) ? 0 : n; };
+const bool = v => String(v).trim().toUpperCase() === "TRUE";
+const signed = n => n > 0 ? "+" + n : String(n);
+const pm = n => `<span class="${n > 0 ? "pos" : n < 0 ? "neg" : ""}">${signed(n)}</span>`;
+
+function ts(d, t) {
+  const m = String(d || "").match(/(\d+)\/(\d+)\/(\d+)/);
+  if (!m) return 0;
+  let h = 0, mi = 0;
+  const tm = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  if (tm) { h = (+tm[1]) % 12; if ((tm[3] || "").toUpperCase() === "PM") h += 12; mi = +tm[2]; }
+  return new Date(+m[3], +m[1] - 1, +m[2], h, mi).getTime();
+}
+const shortDate = d => { const t = ts(d); return t ? new Date(t).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : d; };
+
+function parseCSV(text) {
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i+1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (c !== "\r") cur += c;
+  }
+  if (cur.length || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
+async function loadTab(name) {
+  const url = `https://docs.google.com/spreadsheets/d/${CFG.sheetId}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(name)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(name);
+  const rows = parseCSV(await res.text()).filter(r => r.some(c => c.trim() !== ""));
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(r => Object.fromEntries(headers.map((h, i) => [h, (r[i] ?? "").trim()])));
+}
+
+/* Sortable table. cols: {k, l, n (numeric), f (custom cell html)} */
+function table(el, cols, rows, o = {}) {
+  let sk = o.sort || null, asc = !!o.asc, view = [];
+  const draw = () => {
+    view = [...rows];
+    const c = cols.find(c => c.k === sk);
+    if (c) view.sort((a, b) => {
+      let x = a[sk], y = b[sk];
+      if (c.n) { x = +x || 0; y = +y || 0; } else { x = String(x ?? "").toLowerCase(); y = String(y ?? "").toLowerCase(); }
+      return (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1);
+    });
+    if (!view.length) { el.innerHTML = `<div class="msg">${o.empty || "No data yet."}</div>`; return; }
+    el.innerHTML = `<table><thead><tr>${cols.map(c =>
+      `<th data-k="${c.k}" class="${c.n ? "num" : ""}">${c.l}<span class="arrow">${c.k === sk ? (asc ? "▲" : "▼") : ""}</span></th>`).join("")}</tr></thead>
+      <tbody>${view.map(r => `<tr${o.player ? ` class="click" data-player="${esc(r[o.player])}"` : ""}>${cols.map(c =>
+        `<td class="${c.n ? "num" : "txt"}">${c.f ? c.f(r) : esc(r[c.k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    el.querySelectorAll("th").forEach(th => th.onclick = () => {
+      const k = th.dataset.k, cc = cols.find(c => c.k === k);
+      if (sk === k) asc = !asc; else { sk = k; asc = !cc.n; }
+      draw();
+    });
+  };
+  draw();
+  return { setRows(r) { rows = r; draw(); } };
+}
+
+/* =====================================================
+   DATA
+   ===================================================== */
+const D = { team:[], skaters:[], penalties:[], goalies:[], roster:[] };
+let typeFilter = "";
+let skaterTable = null, skaterRows = [];
+
+function prepGames(rows) {
+  return rows.map(g => {
+    const r = String(g.Result || "").toUpperCase().trim();
+    const ot = bool(g.OT) || bool(g.Shootout);
+    let code = "";
+    if (r) code = r.startsWith("W") ? "W" : r.startsWith("T") ? "T" : (r === "OTL" || r === "SOL") ? "OTL" : (ot ? "OTL" : "L");
+    const suffix = bool(g.Shootout) ? " (SO)" : bool(g.OT) ? " (OT)" : "";
+    return { ...g, _ts: ts(g.Date, g.Time), _gm: num(g.Game), _code: code, _played: code !== "", _suffix: suffix };
+  }).sort((a, b) => a._ts - b._ts || a._gm - b._gm);
+}
+const inType = r => !typeFilter || r.Type === typeFilter;
+const badge = g => g._played ? `<span class="badge ${g._code}">${g._code}${g._code === "W" ? esc(g._suffix) : ""}</span>` : "—";
+const vs = g => (String(g["Home/Away"]).toLowerCase().startsWith("a") ? "@ " : "vs ") + esc(g.Opponent);
+
+/* ----- Aggregations ----- */
+function skaterAgg(rows) {
+  const m = new Map();
+  rows.forEach(r => {
+    const n = r.Player; if (!n) return;
+    let a = m.get(n); if (!a) { a = { Player:n, Jersey:r.Jersey, GP:0, G:0, A:0, P:0, PM:0 }; m.set(n, a); }
+    a.GP++; a.G += num(r.G); a.A += num(r.A);
+    a.P += r.P !== "" ? num(r.P) : num(r.G) + num(r.A);
+    a.PM += num(r["Plus/Minus"]);
+    a.Jersey = r.Jersey || a.Jersey;
+  });
+  return [...m.values()].map(a => ({ ...a, PPG: a.GP ? +(a.P / a.GP).toFixed(2) : 0 }));
+}
+
+function goalieAgg(rows) {
+  const m = new Map();
+  rows.forEach(r => {
+    const n = r.Goalie; if (!n) return;
+    let a = m.get(n); if (!a) { a = { Player:n, Jersey:r.Jersey, GP:0, W:0, L:0, T:0, OTL:0, GA:0, MIN:0, SO:0 }; m.set(n, a); }
+    a.GP++; a.W += bool(r.W) ? 1 : 0; a.L += bool(r.L) ? 1 : 0; a.T += bool(r.T) ? 1 : 0; a.OTL += bool(r.OT) ? 1 : 0;
+    a.GA += num(r.GA); a.MIN += num(r.Minutes); a.SO += bool(r.Shutout) ? 1 : 0;
+    a.Jersey = r.Jersey || a.Jersey;
+  });
+  return [...m.values()].map(a => ({ ...a, GAA: a.MIN > 0 ? +(a.GA * CFG.gameMinutes / a.MIN).toFixed(2) : null, MIN: +a.MIN.toFixed(1) }));
+}
+
+function dawgNames() {
+  return new Set([...D.roster.map(r => r.Player), ...D.skaters.map(r => r.Player), ...D.goalies.map(r => r.Goalie)].filter(Boolean));
+}
+
+function penaltyAgg(rows) {
+  const dawgs = dawgNames(), m = new Map();
+  rows.forEach(r => {
+    const n = r.Player; if (!n) return;
+    let a = m.get(n); if (!a) { a = { Player:n, Jersey:r.Jersey, Team: dawgs.has(n) ? "Dawgs" : "Opp", PEN:0, PIM:0, types:new Map() }; m.set(n, a); }
+    a.PEN++; a.PIM += num(r.PIM);
+    a.types.set(r.Penalty, (a.types.get(r.Penalty) || 0) + 1);
+  });
+  return [...m.values()].map(a => ({ ...a, Common: [...a.types.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || "" }));
+}
+
+/* =====================================================
+   RENDER
+   ===================================================== */
+function renderTicker() {
+  const played = D.team.filter(g => g._played).slice(-8);
+  const upcoming = D.team.filter(g => !g._played).slice(0, 4);
+  const res = played.map(g => `<div class="tgame">
+      <div class="tdate">${esc(shortDate(g.Date))} &bull; Final${esc(g._suffix)}</div>
+      <div class="trow"><span>${esc(CFG.teamName)}</span><span>${esc(g.GF)}</span></div>
+      <div class="trow dim"><span>${vs(g)}</span><span>${esc(g.GA)}</span></div>
+      <div class="tres ${g._code}">${g._code === "W" ? "WIN" : g._code === "L" ? "LOSS" : g._code}</div></div>`).join("");
+  const up = upcoming.map((g, i) => `<div class="tgame upcoming${i === 0 ? " next" : ""}">
+      <div class="tdate">${esc(shortDate(g.Date))} &bull; ${esc(g.Time)}</div>
+      <div class="up-line">${esc(CFG.teamName)}</div>
+      <div class="trow dim"><span>${vs(g)}</span></div>
+      <div class="tres up">UPCOMING</div></div>`).join("");
+  $("ticker").innerHTML = res + up || `<div class="tgame"><div class="tdate">No games yet</div></div>`;
+  const nx = document.querySelector(".tgame.next");
+  if (nx) $("ticker").parentElement.scrollLeft = Math.max(0, nx.offsetLeft - 330);
+}
+
+function leaderCard(title, rows, key, o = {}) {
+  const list = rows.filter(o.filter || (() => true)).sort((a, b) => (o.asc ? a[key] - b[key] : b[key] - a[key])).slice(0, 5);
+  const fmt = o.fmt || (v => v);
+  return `<div class="card leader"><h3>${title}</h3>${list.length ? list.map((p, i) =>
+    `<div class="lrow${i === 0 ? " first" : ""}" data-player="${esc(p.Player)}"><span class="rank">${i + 1}</span><span class="name">${esc(p.Player)}</span><span class="num">${fmt(p[key])}</span></div>`).join("")
+    : `<div class="msg">No data yet</div>`}</div>`;
+}
+
+function renderHome() {
+  const games = D.team.filter(inType), done = games.filter(g => g._played);
+  const w = done.filter(g => g._code === "W").length, l = done.filter(g => g._code === "L").length;
+  const t = done.filter(g => g._code === "T").length, otl = done.filter(g => g._code === "OTL").length;
+  const gf = done.reduce((s, g) => s + num(g.GF), 0), ga = done.reduce((s, g) => s + num(g.GA), 0), gp = done.length;
+  const diff = gf - ga;
+  const tiles = [
+    ["Record (W-L-T-OTL)", `${w}-${l}-${t}-${otl}`], ["Games Played", gp],
+    ["Win %", gp ? Math.round((w / gp) * 100) + "%" : "—"],
+    ["Goals For", gf], ["Goals Against", ga], ["Goal Diff", signed(diff)],
+    ["GF / Game", gp ? (gf / gp).toFixed(2) : "—"], ["GA / Game", gp ? (ga / gp).toFixed(2) : "—"]
+  ];
+  $("stats").innerHTML = tiles.map(([a, b]) => `<div class="stat"><div class="lbl">${a}</div><div class="val">${b}</div></div>`).join("");
+
+  table($("upcoming"), [
+    { k:"Date", l:"Date", f:g => esc(shortDate(g.Date)) }, { k:"Time", l:"Time" },
+    { k:"Opponent", l:"Opponent", f:g => vs(g) }, { k:"Rink", l:"Rink" }, { k:"Type", l:"Type" }
+  ], games.filter(g => !g._played).slice(0, 3), { empty:"No upcoming games scheduled." });
+
+  const sk = skaterAgg(D.skaters.filter(inType)), go = goalieAgg(D.goalies.filter(inType));
+  $("leaders").innerHTML =
+    leaderCard("Points", sk, "P") + leaderCard("Goals", sk, "G") + leaderCard("Assists", sk, "A") +
+    leaderCard("Plus / Minus", sk, "PM", { fmt: signed }) +
+    leaderCard("Goalie Wins", go, "W") +
+    leaderCard("Goals Against Avg", go, "GAA", { asc:true, filter:g => g.GAA !== null && g.MIN > 0, fmt:v => v.toFixed(2) });
+
+  table($("recent"), scheduleCols(), done.slice(-5).reverse(), { empty:"No games played yet." });
+}
+
+function scheduleCols() {
+  return [
+    { k:"_gm", l:"#", n:true, f:g => esc(g.Game) },
+    { k:"_ts", l:"Date", n:true, f:g => esc(shortDate(g.Date)) },
+    { k:"Time", l:"Time" },
+    { k:"Opponent", l:"Opponent", f:g => vs(g) },
+    { k:"Rink", l:"Rink" },
+    { k:"GF", l:"Score", n:true, f:g => g._played ? `${esc(g.GF)} – ${esc(g.GA)}` : "—" },
+    { k:"_code", l:"Result", f:g => badge(g) },
+    { k:"Type", l:"Type" }
+  ];
+}
+
+function renderSchedule() {
+  table($("tbl-schedule"), scheduleCols(), D.team.filter(inType), { sort:"_ts", asc:true });
+}
+
+function renderSkaters() {
+  skaterRows = skaterAgg(D.skaters.filter(inType));
+  const cols = [
+    { k:"Player", l:"Player" },
+    { k:"Jersey", l:"#", n:true }, { k:"GP", l:"GP", n:true }, { k:"G", l:"G", n:true }, { k:"A", l:"A", n:true },
+    { k:"P", l:"P", n:true, f:r => `<b>${r.P}</b>` },
+    { k:"PM", l:"+/-", n:true, f:r => pm(r.PM) },
+    { k:"PPG", l:"P/GP", n:true, f:r => r.PPG.toFixed(2) }
+  ];
+  skaterTable = table($("tbl-skaters"), cols, skaterRows, { sort:"P", player:"Player" });
+  $("search-skaters").oninput = applySkaterSearch;
+  applySkaterSearch();
+}
+function applySkaterSearch() {
+  const q = $("search-skaters").value.toLowerCase();
+  skaterTable.setRows(skaterRows.filter(r => r.Player.toLowerCase().includes(q) || String(r.Jersey).includes(q)));
+}
+
+function renderGoalies() {
+  const rows = goalieAgg(D.goalies.filter(inType));
+  table($("tbl-goalies"), [
+    { k:"Player", l:"Goalie" }, { k:"Jersey", l:"#", n:true }, { k:"GP", l:"GP", n:true },
+    { k:"W", l:"W", n:true }, { k:"L", l:"L", n:true }, { k:"T", l:"T", n:true }, { k:"OTL", l:"OTL", n:true },
+    { k:"GA", l:"GA", n:true }, { k:"MIN", l:"MIN", n:true },
+    { k:"GAA", l:"GAA", n:true, f:r => r.GAA === null ? "—" : `<b>${r.GAA.toFixed(2)}</b>` },
+    { k:"SO", l:"SO", n:true }
+  ], rows, { sort:"W", player:"Player" });
+  $("goalie-note").textContent = `GAA is goals against per ${CFG.gameMinutes} minutes (one full game).`;
+}
+
+function renderPenalties() {
+  const f = $("pen-team").value;
+  let rows = penaltyAgg(D.penalties.filter(inType));
+  if (f !== "all") rows = rows.filter(r => r.Team === f);
+  table($("tbl-penalties"), [
+    { k:"Player", l:"Player" }, { k:"Jersey", l:"#", n:true }, { k:"Team", l:"Team" },
+    { k:"PEN", l:"Penalties", n:true }, { k:"PIM", l:"PIM", n:true, f:r => `<b>${r.PIM}</b>` },
+    { k:"Common", l:"Most Common" }
+  ], rows, { sort:"PIM", player:"Player", empty:"No penalties recorded." });
+}
+
+function renderRoster() {
+  const sk = new Map(skaterAgg(D.skaters.filter(inType)).map(a => [a.Player, a]));
+  const go = new Map(goalieAgg(D.goalies.filter(inType)).map(a => [a.Player, a]));
+  const rows = [...D.roster].sort((a, b) => num(a.Jersey) - num(b.Jersey));
+  $("roster").innerHTML = rows.length ? rows.map(p => {
+    const s = sk.get(p.Player), g = go.get(p.Player);
+    const mini = s ? `<span>GP <b>${s.GP}</b></span><span>G <b>${s.G}</b></span><span>A <b>${s.A}</b></span><span>P <b>${s.P}</b></span>`
+               : g ? `<span>GP <b>${g.GP}</b></span><span>W <b>${g.W}</b></span><span>GAA <b>${g.GAA === null ? "—" : g.GAA.toFixed(2)}</b></span>` : "";
+    return `<div class="pcard" data-player="${esc(p.Player)}"><div class="hd"><div class="jn">${esc(p.Jersey || "#")}</div></div>
+      <div class="bd"><div class="nm">${esc(p.Player)}</div><div class="sub">${p.Shoots ? "Shoots " + esc(p.Shoots) : "&nbsp;"}</div><div class="mini">${mini}</div></div></div>`;
+  }).join("") : `<div class="msg">Roster not available.</div>`;
+}
+
+/* ----- Player modal ----- */
+function miniTable(headers, rows) {
+  return `<div class="tablewrap"><table><thead><tr>${headers.map(h => `<th style="cursor:default">${h}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function openPlayer(name) {
+  const ro = D.roster.find(r => r.Player === name);
+  const srows = D.skaters.filter(r => r.Player === name).sort((a, b) => ts(a.Date) - ts(b.Date));
+  const grows = D.goalies.filter(r => r.Goalie === name).sort((a, b) => ts(a.Date) - ts(b.Date));
+  const jersey = ro?.Jersey || srows[0]?.Jersey || grows[0]?.Jersey || "";
+  let tiles = "", log = "";
+  const tile = (l, v) => `<div class="mtile"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+  if (srows.length) {
+    const a = skaterAgg(srows)[0];
+    tiles = tile("GP", a.GP) + tile("G", a.G) + tile("A", a.A) + tile("P", a.P) + tile("+/-", signed(a.PM)) + tile("P/GP", a.PPG.toFixed(2));
+    log = miniTable(["Gm", "Date", "Opponent", "G", "A", "P", "+/-"],
+      srows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), esc(r.G), esc(r.A), esc(r.P), pm(num(r["Plus/Minus"]))]));
+  } else if (grows.length) {
+    const a = goalieAgg(grows)[0];
+    tiles = tile("GP", a.GP) + tile("W", a.W) + tile("L", a.L) + tile("GA", a.GA) + tile("GAA", a.GAA === null ? "—" : a.GAA.toFixed(2)) + tile("SO", a.SO);
+    log = miniTable(["Gm", "Date", "Opponent", "Dec.", "GA", "MIN"],
+      grows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), bool(r.W) ? "W" : bool(r.L) ? "L" : bool(r.T) ? "T" : bool(r.OT) ? "OTL" : "—", esc(r.GA), esc(r.Minutes)]));
+  } else tiles = `<div class="msg" style="width:100%">No game stats yet.</div>`;
+  const pens = D.penalties.filter(r => r.Player === name);
+  const penLine = pens.length ? `<p class="note" style="padding:8px 20px 0">Penalties: ${pens.length} for ${pens.reduce((s, r) => s + num(r.PIM), 0)} PIM</p>` : "";
+  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${esc(jersey)}${ro?.Shoots ? " &bull; Shoots " + esc(ro.Shoots) : ""}</div><h2>${esc(name)}</h2></div>
+    <div class="mtiles">${tiles}</div>${penLine}<div class="mlog">${log}</div>`;
+  $("modal").classList.add("open");
+}
+const closeModal = () => $("modal").classList.remove("open");
+
+/* =====================================================
+   NAV / INIT
+   ===================================================== */
+function buildNav() {
+  const items = [["home","Home"],["schedule","Schedule"],["skaters","Skaters"],["goalies","Goalies"],["penalties","Penalties"],["roster","Roster"],["dashboard","Full Dashboard"]];
+  $("nav").innerHTML = items.map(([id, l]) => `<button data-v="${id}">${l}</button>`).join("");
+  const show = id => {
+    document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + id));
+    document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.v === id));
+    history.replaceState(null, "", "#" + id);
+  };
+  document.querySelectorAll("nav button").forEach(b => b.onclick = () => show(b.dataset.v));
+  const start = location.hash.slice(1);
+  show(items.some(i => i[0] === start) ? start : "home");
+}
+
+function renderAll() {
+  renderTicker(); renderHome(); renderSchedule(); renderSkaters(); renderGoalies(); renderPenalties(); renderRoster();
+}
+
+function buildTypeFilter() {
+  const types = [...new Set(D.team.map(g => g.Type).filter(Boolean))];
+  const sel = $("typeFilter");
+  sel.innerHTML = `<option value="">All games</option>` + types.map(t => `<option value="${esc(t)}"${t === typeFilter ? " selected" : ""}>${esc(t)}</option>`).join("");
+  sel.style.display = types.length > 1 ? "" : "none";
+}
+
+async function loadAll() {
+  if (CFG.sheetId.startsWith("PASTE")) {
+    $("banner").innerHTML = `<div class="card"><div class="msg err">Add your Google Sheet ID to <b>CFG.sheetId</b> at the top of the script to load data.</div></div>`;
+    return;
+  }
+  const keys = Object.keys(CFG.tabs);
+  const results = await Promise.allSettled(keys.map(k => loadTab(CFG.tabs[k])));
+  const failed = [];
+  results.forEach((r, i) => { if (r.status === "fulfilled") D[keys[i]] = r.value; else failed.push(CFG.tabs[keys[i]]); });
+  D.team = prepGames(D.team);
+  $("banner").innerHTML = failed.length
+    ? `<div class="card" style="margin-bottom:14px"><div class="msg err">Couldn't load: ${failed.map(esc).join(", ")}. Check the tab names and that the sheet is shared as "Anyone with the link can view".</div></div>` : "";
+  buildTypeFilter();
+  renderAll();
+  $("footer").textContent = `Unofficial team stats site • Data from Google Sheets • Updated ${new Date().toLocaleTimeString([], { hour:"numeric", minute:"2-digit" })}`;
+}
+
+$("teamName").textContent = CFG.teamName;
+$("crest").textContent = CFG.crestText;
+$("seasonLabel").textContent = CFG.season;
+$("typeFilter").onchange = e => { typeFilter = e.target.value; renderAll(); };
+$("pen-team").onchange = renderPenalties;
+document.addEventListener("click", e => { const p = e.target.closest("[data-player]"); if (p && p.dataset.player) openPlayer(p.dataset.player); });
+$("mclose").onclick = closeModal;
+$("modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+buildNav();
+loadAll();
+setInterval(loadAll, CFG.refreshMinutes * 60000);
+</script>
 </body>
 </html>
