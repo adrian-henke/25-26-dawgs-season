@@ -6,62 +6,64 @@
 <title>26-27 Utah Dawgs Season</title>
 <style>
   :root {
-    color-scheme: dark;
-    --blue:#184b9a; --blue-2:#2260c4; --blue-hi:#5b9bff;
-    --bg:#05080f; --card:#0b1424; --card-2:#0f1b31; --hover:#15294d; --line:#1c2d4f;
-    --ink:#f3f6fc; --muted:#94a6c6;
-    --win:#22c55e; --loss:#f05252; --otl:#f59e0b;
+    color-scheme: light;
+    --maxw:1280px;
+    --blue:#184b9a; --blue-2:#2260c4; --blue-dark:#0e2f66; --blue-hi:#6ea8ff;
+    --bg:#e7edf7; --card:#ffffff; --card-2:#f3f6fb; --hover:#e4edfb; --line:#d5deee;
+    --ink:#0f1a2e; --muted:#5b6b86;
+    --win:#16a34a; --loss:#dc2626; --otl:#d97706;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
   html { background:var(--bg); }
   body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); min-height:100vh;
-         background:radial-gradient(1100px 420px at 50% -120px, rgba(24,75,154,.38), transparent 70%), var(--bg); }
+         background:linear-gradient(180deg,#d3e0f5 0px,#e7edf7 380px); }
 
   /* Ticker */
-  .ticker { background:#000; color:#fff; overflow-x:auto; white-space:nowrap; border-bottom:1px solid var(--line); scrollbar-width:thin; }
+  .ticker { background:#000; color:#fff; overflow-x:auto; white-space:nowrap; border-bottom:1px solid #111c33; scrollbar-width:thin; }
   .ticker-inner { display:inline-flex; padding:0 8px; }
   .tgame { display:inline-block; min-width:158px; padding:10px 16px; border-right:1px solid #111c33; font-size:.78rem; vertical-align:top; }
   .tgame .tdate { color:#7f93b8; font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
   .tgame .trow { display:flex; justify-content:space-between; gap:12px; font-weight:700; }
   .tgame .trow.dim { color:#8fa2c6; font-weight:500; }
   .tgame .tres { margin-top:4px; font-size:.66rem; font-weight:800; letter-spacing:.05em; }
-  .tres.W { color:var(--win); } .tres.L { color:var(--loss); } .tres.OTL { color:var(--otl); } .tres.T { color:#9ca3af; } .tres.up { color:var(--blue-hi); }
+  .tres.W { color:#22c55e; } .tres.L { color:#f05252; } .tres.OTL { color:#f59e0b; } .tres.T { color:#9ca3af; } .tres.up { color:var(--blue-hi); }
   .tgame.upcoming .up-line { font-weight:700; margin:2px 0; }
 
   /* Header */
   header { background:#000; color:#fff; border-bottom:3px solid var(--blue); }
-  .top { max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:16px; padding:14px 20px; }
-  .logo { height:64px; width:auto; max-width:130px; object-fit:contain; flex-shrink:0; }
-  .crest { display:none; width:56px; height:56px; border-radius:50%; background:var(--blue); place-items:center; font-weight:800; letter-spacing:.02em; flex-shrink:0; }
+  .top { max-width:var(--maxw); margin:0 auto; display:flex; align-items:center; gap:20px; padding:18px 20px; }
+  .logo { height:88px; width:auto; max-width:180px; object-fit:contain; flex-shrink:0; }
+  .crest { display:none; width:76px; height:76px; border-radius:50%; background:var(--blue); place-items:center; font-weight:800; font-size:1.6rem; letter-spacing:.02em; flex-shrink:0; }
   .brand { flex:1; }
-  .brand h1 { font-size:1.35rem; font-weight:800; letter-spacing:.01em; }
-  .brand p { font-size:.78rem; color:var(--muted); margin-top:2px; }
+  .brand h1 { font-size:2.1rem; line-height:1.1; font-weight:800; letter-spacing:.01em; }
+  .brand p { font-size:.95rem; color:#9db5e0; margin-top:4px; }
   .filter select { background:#000; color:#fff; border:1px solid var(--blue); border-radius:8px; padding:8px 10px; font-size:.82rem; font-weight:600; }
   nav { background:var(--blue); }
-  .navin { max-width:1200px; margin:0 auto; display:flex; overflow-x:auto; padding:0 12px; }
-  nav button { background:none; border:0; color:rgba(255,255,255,.72); font-size:.82rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  .navin { max-width:var(--maxw); margin:0 auto; display:flex; overflow-x:auto; padding:0 12px; }
+  nav button { background:none; border:0; color:rgba(255,255,255,.75); font-size:.82rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
                padding:14px 18px; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; }
   nav button:hover { color:#fff; }
   nav button.active { color:#fff; border-bottom-color:#fff; }
 
   /* Layout */
-  main { max-width:1200px; margin:0 auto; padding:20px; }
+  main { max-width:var(--maxw); margin:0 auto; padding:22px 20px; }
   .view { display:none; } .view.active { display:block; }
-  h2.sec { font-size:.82rem; text-transform:uppercase; letter-spacing:.1em; color:var(--ink); border-left:4px solid var(--blue-2); padding-left:10px; margin:28px 0 12px; }
+  h2.sec { font-size:.85rem; text-transform:uppercase; letter-spacing:.1em; color:var(--ink); border-left:4px solid var(--blue); padding-left:10px; margin:28px 0 12px; }
   h2.sec:first-child { margin-top:0; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(15,26,46,.08); }
   .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; }
-  .toolbar input, .toolbar select { padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; background:var(--card); color:var(--ink); }
+  .toolbar input, .toolbar select { padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; background:#fff; color:var(--ink); }
   .toolbar input::placeholder { color:var(--muted); }
   .note { font-size:.8rem; color:var(--muted); margin:0 2px 10px; }
   .note.after { margin:8px 2px 0; }
 
-  /* Key metrics: always a single row (scrolls sideways on small screens) */
-  .stats { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; scrollbar-width:thin; }
-  .stat { flex:1 1 0; min-width:108px; background:var(--card); border:1px solid var(--line); border-top:3px solid var(--blue-2); border-radius:10px; padding:12px 10px; }
-  .stat.wide { flex:1.5 1 0; min-width:132px; }
-  .stat .lbl { font-size:.62rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); white-space:nowrap; }
-  .stat .val { font-size:1.35rem; font-weight:800; margin-top:4px; white-space:nowrap; }
+  /* KPI tiles: always a single row (scrolls sideways on small screens) */
+  .stats { display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; scrollbar-width:thin; }
+  .stat { flex:1 1 0; min-width:104px; background:linear-gradient(160deg,var(--blue) 0%,var(--blue-dark) 100%); color:#fff;
+          border-radius:12px; padding:16px 12px; box-shadow:0 4px 14px rgba(24,75,154,.28); }
+  .stat.wide { flex:1.7 1 0; min-width:160px; }
+  .stat .lbl { font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:rgba(255,255,255,.78); line-height:1.25; min-height:2.5em; }
+  .stat .val { font-size:1.75rem; font-weight:800; margin-top:6px; white-space:nowrap; }
 
   /* Leaders (every row uses the same font sizes) */
   .leaders { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
@@ -72,7 +74,7 @@
   .lrow .rank { min-width:28px; color:var(--muted); font-weight:700; font-variant-numeric:tabular-nums; }
   .lrow .name { flex:1; font-weight:600; }
   .lrow .num { font-weight:800; font-variant-numeric:tabular-nums; }
-  .lrow.first { background:rgba(24,75,154,.22); }
+  .lrow.first { background:#eaf1fd; }
   .lrow.first:hover { background:var(--hover); }
 
   /* Tables */
@@ -83,6 +85,7 @@
   th:hover { background:var(--blue-2); }
   th .arrow { margin-left:4px; opacity:.85; }
   th.num, td.num { text-align:right; }
+  table.ctr th.num, table.ctr td.num { text-align:center; }   /* Stats page: numbers centered under their titles */
   td { padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td.txt { font-weight:600; }
   tbody tr:nth-child(even) { background:var(--card-2); }
@@ -96,13 +99,13 @@
 
   /* Stats page jump links */
   .jump { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
-  .jump a { padding:6px 14px; border:1px solid var(--line); background:var(--card); border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; color:var(--ink); }
-  .jump a:hover { border-color:var(--blue-hi); color:var(--blue-hi); }
+  .jump a { padding:6px 14px; border:1px solid var(--line); background:#fff; border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; color:var(--ink); }
+  .jump a:hover { border-color:var(--blue); color:var(--blue); }
 
   /* Roster */
   .roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
-  .pcard { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .12s, box-shadow .12s, border-color .12s; }
-  .pcard:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(24,75,154,.45); border-color:var(--blue-2); }
+  .pcard { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; box-shadow:0 1px 3px rgba(15,26,46,.08); transition:transform .12s, box-shadow .12s, border-color .12s; }
+  .pcard:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(24,75,154,.28); border-color:var(--blue-2); }
   .pcard .hd { background:linear-gradient(135deg,#000 0%,var(--blue) 100%); color:#fff; padding:14px; display:flex; justify-content:space-between; align-items:flex-start; }
   .pcard .jn { font-size:2.1rem; font-weight:800; line-height:1; }
   .pcard .pp { font-size:.7rem; font-weight:800; letter-spacing:.08em; background:rgba(255,255,255,.18); padding:3px 9px; border-radius:999px; }
@@ -113,9 +116,9 @@
   .pcard .mini b { color:var(--ink); }
 
   /* Modal */
-  .modal { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow-y:auto; z-index:50; }
+  .modal { position:fixed; inset:0; background:rgba(10,20,40,.65); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow-y:auto; z-index:50; }
   .modal.open { display:flex; }
-  .modal-card { background:var(--card); border:1px solid var(--line); border-radius:12px; width:100%; max-width:760px; position:relative; overflow:hidden; }
+  .modal-card { background:var(--card); border-radius:12px; width:100%; max-width:760px; position:relative; overflow:hidden; }
   .modal-card .close { position:absolute; top:10px; right:14px; background:none; border:0; color:#fff; font-size:1.8rem; cursor:pointer; line-height:1; }
   .mhead { background:linear-gradient(135deg,#000 0%,var(--blue) 100%); color:#fff; padding:20px; }
   .mhead .mj { font-size:.9rem; color:#a9c8ff; font-weight:700; }
@@ -126,13 +129,15 @@
   .mtile .v { font-size:1.3rem; font-weight:800; }
   .mlog { padding:8px 0 4px; }
 
-  footer { text-align:center; color:var(--muted); font-size:.75rem; padding:30px 0 40px; }
+  footer { background:#000; color:#8fa2c6; border-top:3px solid var(--blue); text-align:center; font-size:.75rem; padding:22px 12px 26px; margin-top:32px; }
 
   @media (max-width:600px) {
-    main { padding:12px; }
-    .top { padding:10px 12px; gap:10px; }
-    .logo { height:48px; }
-    .brand h1 { font-size:1.1rem; }
+    main { padding:14px 12px; }
+    .top { padding:12px; gap:12px; }
+    .logo { height:56px; }
+    .crest { width:52px; height:52px; font-size:1.1rem; }
+    .brand h1 { font-size:1.4rem; }
+    .brand p { font-size:.8rem; }
     td, th { padding:9px 10px; }
   }
 </style>
@@ -281,7 +286,8 @@ async function loadTab(name) {
   return rows.slice(1).map(r => Object.fromEntries(headers.map((h, i) => [h, (r[i] ?? "").trim()])));
 }
 
-/* Sortable table. cols: {k, l, n (numeric), f (custom cell html)} */
+/* Sortable table. cols: {k, l, n (numeric), f (custom cell html)}
+   options: sort/asc (default sort), then (tie-break column, high to low), center (center numeric columns), player (click-through key) */
 function table(el, cols, rows, o = {}) {
   let sk = o.sort || null, asc = !!o.asc, view = [];
   const draw = () => {
@@ -289,11 +295,17 @@ function table(el, cols, rows, o = {}) {
     const c = cols.find(c => c.k === sk);
     if (c) view.sort((a, b) => {
       let x = a[sk], y = b[sk];
-      if (c.n) { x = +x || 0; y = +y || 0; } else { x = String(x ?? "").toLowerCase(); y = String(y ?? "").toLowerCase(); }
-      return (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1);
+      if (c.n) {
+        x = (x === null || x === undefined || x === "") ? null : +x;
+        y = (y === null || y === undefined || y === "") ? null : +y;
+        if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1;   // blanks always sort last
+      } else { x = String(x ?? "").toLowerCase(); y = String(y ?? "").toLowerCase(); }
+      let r = (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1);
+      if (!r && o.then) r = (+b[o.then] || 0) - (+a[o.then] || 0);
+      return r;
     });
     if (!view.length) { el.innerHTML = `<div class="msg">${o.empty || "No data yet."}</div>`; return; }
-    el.innerHTML = `<table><thead><tr>${cols.map(c =>
+    el.innerHTML = `<table${o.center ? ' class="ctr"' : ""}><thead><tr>${cols.map(c =>
       `<th data-k="${c.k}" class="${c.n ? "num" : ""}">${c.l}<span class="arrow">${c.k === sk ? (asc ? "▲" : "▼") : ""}</span></th>`).join("")}</tr></thead>
       <tbody>${view.map(r => `<tr${o.player && !r._bench ? ` class="click" data-player="${esc(r[o.player])}"` : ""}>${cols.map(c =>
         `<td class="${c.n ? "num" : "txt"}">${c.f ? c.f(r) : esc(r[c.k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
@@ -345,7 +357,7 @@ function skaterAgg(rows) {
     a.PM += num(r[PM_KEY]);
     a.Jersey = r.Jersey || a.Jersey;
   });
-  return [...m.values()].map(a => ({ ...a, PPG: a.GP ? +(a.P / a.GP).toFixed(2) : 0 }));
+  return [...m.values()].map(a => ({ ...a, JN: num(a.Jersey), PPG: a.GP ? +(a.P / a.GP).toFixed(2) : 0 }));
 }
 
 function goalieAgg(rows) {
@@ -357,7 +369,7 @@ function goalieAgg(rows) {
     a.GA += num(r.GA); a.MIN += num(r.Minutes); a.SO += bool(r.Shutout) ? 1 : 0;
     a.Jersey = r.Jersey || a.Jersey;
   });
-  return [...m.values()].map(a => ({ ...a, GAA: a.MIN > 0 ? +(a.GA * CFG.gameMinutes / a.MIN).toFixed(2) : null, MIN: +a.MIN.toFixed(1) }));
+  return [...m.values()].map(a => ({ ...a, JN: num(a.Jersey), GAA: a.MIN > 0 ? +(a.GA * CFG.gameMinutes / a.MIN).toFixed(2) : null, MIN: +a.MIN.toFixed(1) }));
 }
 
 function penaltyAgg(rows) {
@@ -369,7 +381,7 @@ function penaltyAgg(rows) {
     a.PEN++; a.PIM += num(r.PIM);
     a.types.set(r.Penalty, (a.types.get(r.Penalty) || 0) + 1);
   });
-  return [...m.values()].map(a => ({ ...a, PIM: pimFmt(a.PIM), Common: [...a.types.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || "" }));
+  return [...m.values()].map(a => ({ ...a, JN: a._bench ? null : num(a.Jersey), PIM: pimFmt(a.PIM), Common: [...a.types.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || "" }));
 }
 
 /* =====================================================
@@ -465,13 +477,14 @@ function renderSkaters() {
   skaterRows = skaterAgg(D.skaters.filter(inType)).map(r => ({ ...r, Pos: POS.get(r.Player) || "" }));
   const cols = [
     { k:"Player", l:"Player" },
-    { k:"Jersey", l:"#", n:true }, { k:"Pos", l:"Pos" },
+    { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"Pos", l:"Pos" },
     { k:"GP", l:"GP", n:true }, { k:"G", l:"G", n:true }, { k:"A", l:"A", n:true },
     { k:"P", l:"P", n:true, f:r => `<b>${r.P}</b>` },
     { k:"PM", l:"+/-", n:true, f:r => pm(r.PM) },
-    { k:"PPG", l:"P/GP", n:true, f:r => r.PPG.toFixed(2) }
+    { k:"PPG", l:"P/GP", n:true, f:r => `<b>${r.PPG.toFixed(2)}</b>` }
   ];
-  skaterTable = table($("tbl-skaters"), cols, skaterRows, { sort:"P", player:"Player" });
+  // Default sort: points per game (ties broken by total points)
+  skaterTable = table($("tbl-skaters"), cols, skaterRows, { sort:"PPG", then:"P", player:"Player", center:true });
   $("search-skaters").oninput = applySkaterSearch;
   applySkaterSearch();
 }
@@ -482,13 +495,14 @@ function applySkaterSearch() {
 
 function renderGoalies() {
   const rows = goalieAgg(D.goalies.filter(inType));
+  // Default sort: goals against average, lowest first (ties broken by wins)
   table($("tbl-goalies"), [
-    { k:"Player", l:"Goalie" }, { k:"Jersey", l:"#", n:true }, { k:"GP", l:"GP", n:true },
+    { k:"Player", l:"Goalie" }, { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"GP", l:"GP", n:true },
     { k:"W", l:"W", n:true }, { k:"L", l:"L", n:true }, { k:"T", l:"T", n:true }, { k:"OTL", l:"OTL", n:true },
     { k:"GA", l:"GA", n:true }, { k:"MIN", l:"MIN", n:true },
     { k:"GAA", l:"GAA", n:true, f:r => r.GAA === null ? "—" : `<b>${r.GAA.toFixed(2)}</b>` },
     { k:"SO", l:"SO", n:true }
-  ], rows, { sort:"W", player:"Player" });
+  ], rows, { sort:"GAA", asc:true, then:"W", player:"Player", center:true });
   $("goalie-note").textContent = `GAA is goals against per ${CFG.gameMinutes} minutes (one full game).`;
 }
 
@@ -503,11 +517,11 @@ function renderPenalties() {
     : "";
   table($("tbl-penalties"), [
     { k:"Player", l:"Player" },
-    { k:"Jersey", l:"#", n:true, f:r => r._bench ? "—" : esc(r.Jersey) },
+    { k:"JN", l:"Jersey", n:true, f:r => r._bench ? "—" : esc(r.Jersey) },
     { k:"PEN", l:"Penalties", n:true },
     { k:"PIM", l:"PIM", n:true, f:r => `<b>${r.PIM}</b>` },
     { k:"Common", l:"Most Common" }
-  ], rows, { sort:"PIM", player:"Player", empty:"No penalties recorded." });
+  ], rows, { sort:"PIM", player:"Player", center:true, empty:"No penalties recorded." });
 }
 
 function renderRoster() {
