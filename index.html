@@ -203,9 +203,9 @@
     <div class="card"><div class="tablewrap" id="tbl-schedule"></div></div>
   </section>
 
-  <!-- GAME CENTER (not in the menu; opened from the Schedule or the top cards) -->
+  <!-- GAME CENTER (not in the menu; opened from Home, the Schedule or the top cards) -->
   <section class="view" id="view-gamecenter">
-    <button class="back" id="gc-back">&lsaquo; Back to Schedule</button>
+    <button class="back" id="gc-back">&lsaquo; Back</button>
     <div id="gc"></div>
   </section>
 
@@ -258,12 +258,12 @@ const CFG = {
   // Add one line per team:  "Team name exactly as it appears in Team Stats": "file name in your repo",
   // Teams without a line (or whose file isn't found) show their initials instead.
   teamLogos: {
-    "Southern Utah Yeti":   "Southern_Utah_Yeti.png",
-    "DC Wind B":            "DC_Wind.png",
-    "Ogden Jr. Mustangs B": "Ogden_Jr_Mustangs.png", 
-    "Vernal Raptors Black": "Vernal_Raptors.png",
-    "Park City Ice Miners B": "Park_City_Ice_Miners.png"
-
+    "Southern Utah Yeti":     "Southern_Utah_Yeti.png",
+    "DC Wind B":              "DC_Wind.png",
+    "Ogden Jr. Mustangs B":   "Ogden_Jr_Mustangs.png",
+    "Vernal Raptors Black":   "Vernal_Raptors.png",
+    "Park City Ice Miners B": "Park_City_Ice_Miners.png",
+    "Salt Lake Lightning B":  "Salt_Lake_Lightning.png"
   },
 
   sheetId: "1GAJflAWGoU1IDHfo6iZNgNLCzLzDGUVUpffetXVG71g",
@@ -277,6 +277,10 @@ const CFG = {
   // Cards across the top of the page
   tickerPast: 4,    // previous games
   tickerNext: 12,   // upcoming games
+
+  // Home page tables
+  recentGames: 4,   // Recent Results: never shows more than this many games
+  nextUpGames: 3,   // Next Up
 
   refreshMinutes: 5
 };
@@ -369,7 +373,7 @@ async function loadTab(name) {
 function table(el, cols, rows, o = {}) {
   let sk = o.sort || null, asc = !!o.asc, view = [];
   const rowAttr = r => {
-    if (o.game && r._hasOpp) return ` class="click" data-game="${esc(r._key)}"`;
+    if (o.game && r._hasOpp) return ` class="click" data-game="${esc(r._key)}" title="Open Game Center"`;
     if (o.pen) return ` class="click" data-pen="${esc(r[o.pen])}"`;
     if (o.player && !r._bench) return ` class="click" data-player="${esc(r[o.player])}"`;
     return "";
@@ -390,7 +394,7 @@ function table(el, cols, rows, o = {}) {
     });
     if (!view.length) {
       const em = typeof o.empty === "function" ? o.empty() : o.empty;
-      el.innerHTML = `<div class="msg">${em || "No data yet."}</div>`; return;
+      el.innerHTML = `<div class="msg">${em || "No data."}</div>`; return;
     }
     el.innerHTML = `<table${o.center ? ' class="ctr"' : ""}><thead><tr>${cols.map(c =>
       `<th data-k="${c.k}" class="${(c.n ? "num " : "") + (c.mid ? "mid" : "")}">${c.l}<span class="arrow">${c.k === sk ? (asc ? "▲" : "▼") : ""}</span></th>`).join("")}</tr></thead>
@@ -416,7 +420,7 @@ const renderTiles = (el, tiles) => {
 const D = { team:[], skaters:[], penalties:[], goalies:[], roster:[] };
 let typeFilter = "", posFilter = "", PM_KEY = "Plus/Minus";
 let POS = new Map();
-let currentGC = null, pendingGC = null;
+let currentGC = null, pendingGC = null, gcReturn = "schedule";
 const SK = { t:null, rows:[] }, GO = { t:null, rows:[] }, PEN = { t:null, rows:[] };
 
 function detectColumns() {
@@ -439,7 +443,7 @@ function prepGames(rows) {
   }).sort((a, b) => a._ts - b._ts || a._gm - b._gm);
 }
 const inType = r => !typeFilter || r.Type === typeFilter;
-// Upcoming = no result yet (tournament placeholders only count while their date hasn't passed)
+// Upcoming = no result recorded (tournament placeholders only count while their date hasn't passed)
 const upcomingGames = () => D.team.filter(g => !g._played && (!g._tourn || g._future));
 const badge = g => g._played ? `<span class="badge ${g._code}">${g._code}${g._code === "W" ? esc(g._suffix) : ""}</span>` : "—";
 const vs = g => {
@@ -552,7 +556,7 @@ function renderTicker() {
       <div class="tres up">UPCOMING</div>${gcBar(g)}</div>`;
   }).join("");
 
-  $("ticker").innerHTML = res + up || `<div class="tgame"><div class="tdate">No games yet</div></div>`;
+  $("ticker").innerHTML = res + up || `<div class="tgame"><div class="tdate">No games</div></div>`;
   const nx = document.querySelector(".tgame.next");
   if (nx) $("ticker").parentElement.scrollLeft = Math.max(0, nx.offsetLeft - 330);
 }
@@ -570,7 +574,7 @@ function leaderCard(title, rows, key, o = {}) {
   })).filter(x => x.rank <= 5);
   return `<div class="card leader"><h3>${title}</h3>${ranked.length ? ranked.map(x =>
     `<div class="lrow${x.rank === 1 ? " first" : ""}" data-player="${esc(x.p.Player)}"><span class="rank">${x.tied ? "T-" : ""}${x.rank}</span><span class="name">${esc(x.p.Player)}</span><span class="num">${fmt(x.p[key])}</span></div>`).join("")
-    : `<div class="msg">No data yet</div>`}</div>`;
+    : `<div class="msg">No data</div>`}</div>`;
 }
 
 function renderHome() {
@@ -588,11 +592,11 @@ function renderHome() {
     ["Penalty Min", pimFmt(pims)]
   ]);
 
-  // Next Up and Recent Results always show the actual next / last games
+  // Next Up and Recent Results always show the actual next / last games; rows with an opponent open the Game Center
   table($("upcoming"), [
     { k:"Date", l:"Date", mid:true, f:g => esc(shortDate(g.Date)) }, { k:"Time", l:"Time", mid:true },
     { k:"Opponent", l:"Opponent", f:g => vs(g) }, { k:"Rink", l:"Rink" }, { k:"Type", l:"Type" }
-  ], upcomingGames().slice(0, 3), { empty:"No upcoming games scheduled." });
+  ], upcomingGames().slice(0, CFG.nextUpGames), { game:true, empty:"No upcoming games scheduled." });
 
   const sk = skaterAgg(D.skaters.filter(inType)), go = goalieAgg(D.goalies.filter(inType));
   $("leaders").innerHTML =
@@ -604,7 +608,9 @@ function renderHome() {
     leaderCard("Goalie Wins", go, "W", { filter:g => g.W > 0 }) +
     leaderCard("Goals Against Avg", go, "GAA", { asc:true, filter:g => g.GAA !== null && g.MIN > 0, fmt:v => v.toFixed(2) });
 
-  table($("recent"), scheduleCols(), D.team.filter(g => g._played).slice(-4).reverse(), { empty:"No games played yet." });
+  // Most recent first, and never more than CFG.recentGames rows
+  const recent = D.team.filter(g => g._played).slice(-CFG.recentGames).reverse().slice(0, CFG.recentGames);
+  table($("recent"), scheduleCols(), recent, { game:true, empty:"No games played." });
 }
 
 // Used by both Recent Results (Home) and the Schedule: Game, Date, Time, Score and Result are centered
@@ -628,13 +634,13 @@ function renderSchedule() {
 function renderSkaters() {
   SK.rows = skRows(D.skaters.filter(inType));
   // Default sort: points per game (ties broken by total points)
-  SK.t = table($("tbl-skaters"), skaterCols(), SK.rows.filter(hit), { sort:"PPG", then:"P", player:"Player", center:true, empty:searchEmpty("No data yet.") });
+  SK.t = table($("tbl-skaters"), skaterCols(), SK.rows.filter(hit), { sort:"PPG", then:"P", player:"Player", center:true, empty:searchEmpty("No data.") });
 }
 
 function renderGoalies() {
   GO.rows = goalieAgg(D.goalies.filter(inType));
   // Default sort: goals against average, lowest first (ties broken by wins)
-  GO.t = table($("tbl-goalies"), goalieCols(), GO.rows.filter(hit), { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:searchEmpty("No data yet.") });
+  GO.t = table($("tbl-goalies"), goalieCols(), GO.rows.filter(hit), { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:searchEmpty("No data.") });
   $("goalie-note").textContent = `GAA is goals against per ${CFG.gameMinutes} minutes (one full game).`;
 }
 
@@ -707,16 +713,19 @@ function renderGameCenter() {
     { k:"GF", l:"Score", n:true, mid:true, f:x => `${esc(x.GF)} – ${esc(x.GA)}` },
     { k:"_code", l:"Result", mid:true, f:x => badge(x) },
     { k:"Type", l:"Type" }
-  ], meet, { sort:"_ts", empty:`No previous games against ${esc(opp)} yet.` });
+  ], meet, { sort:"_ts", empty:`No previous games against ${esc(opp)}.` });
   table($("gc-sk"), skaterCols(), skRows(D.skaters.filter(sameOpp)),
-    { sort:"PPG", then:"P", player:"Player", center:true, empty:`No skater stats against ${esc(opp)} yet.` });
+    { sort:"PPG", then:"P", player:"Player", center:true, empty:`No skater stats against ${esc(opp)}.` });
   table($("gc-go"), goalieCols(), goalieAgg(D.goalies.filter(sameOpp)),
-    { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:`No goalie stats against ${esc(opp)} yet.` });
+    { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:`No goalie stats against ${esc(opp)}.` });
   table($("gc-pen"), penaltyCols(), penaltyAgg(penRows),
-    { sort:"PIM", pen:"Player", center:true, empty:`No penalties against ${esc(opp)} yet.` });
+    { sort:"PIM", pen:"Player", center:true, empty:`No penalties against ${esc(opp)}.` });
 }
 
 function openGameCenter(key) {
+  // Remember which page we came from so "Back" returns there (Home or Schedule)
+  const from = document.querySelector(".view.active")?.id.replace("view-", "");
+  if (from && from !== "gamecenter") gcReturn = from;
   currentGC = key;
   renderGameCenter();
   if (currentGC) showView("gamecenter", "#gc/" + encodeURIComponent(key));
@@ -770,7 +779,7 @@ function openPlayer(name) {
     tiles = mtile("GP", a.GP) + mtile("W", a.W) + mtile("L", a.L) + mtile("GA", a.GA) + mtile("GAA", a.GAA === null ? "—" : a.GAA.toFixed(2)) + mtile("SO", a.SO);
     log = miniTable(["Gm", "Date", "Opponent", "Dec.", "GA", "MIN"],
       grows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), bool(r.W) ? "W" : bool(r.L) ? "L" : bool(r.T) ? "T" : bool(r.OT) ? "OTL" : "—", esc(r.GA), esc(r.Minutes)]));
-  } else tiles = `<div class="msg" style="width:100%">No game stats yet.</div>`;
+  } else tiles = `<div class="msg" style="width:100%">No game stats.</div>`;
   const pens = D.penalties.filter(r => r.Player === name);
   const penLine = pens.length ? `<p class="note" style="padding:8px 20px 0">Penalties: ${pens.length} for ${pimFmt(pens.reduce((s, r) => s + num(r.PIM), 0))} PIM</p>` : "";
   $("mbody").innerHTML = `<div class="mhead"><div class="mj">${playerSub(ro, jersey)}</div><h2>${esc(name)}</h2></div>
@@ -808,7 +817,7 @@ const closeModal = () => $("modal").classList.remove("open");
    ===================================================== */
 function showView(id, hash) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + id));
-  const navId = id === "gamecenter" ? "schedule" : id;    // Game Center keeps "Schedule" highlighted
+  const navId = id === "gamecenter" ? gcReturn : id;    // Game Center keeps the page you came from highlighted
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.v === navId));
   $("filterWrap").style.display = (id === "roster" || id === "gamecenter") ? "none" : "";   // game-type filter hidden on Roster / Game Center
   history.replaceState(null, "", hash || "#" + id);
@@ -822,6 +831,7 @@ function buildNav() {
   const h = location.hash;
   if (h.startsWith("#gc/")) {                              // a shared Game Center link: open it once the data has loaded
     try { pendingGC = decodeURIComponent(h.slice(4)); } catch (e) {}
+    gcReturn = "schedule";
     showView("schedule");
   } else {
     const start = h.slice(1);
@@ -872,7 +882,7 @@ $("seasonLabel").textContent = CFG.season;
 $("typeFilter").onchange = e => { typeFilter = e.target.value; renderAll(); };
 $("pos-filter").onchange = e => { posFilter = e.target.value; renderRoster(); };
 $("search-stats").oninput = applySearch;
-$("gc-back").onclick = () => { currentGC = null; showView("schedule"); };
+$("gc-back").onclick = () => { currentGC = null; showView(gcReturn); };
 document.addEventListener("click", e => {
   const j = e.target.closest("[data-jump]");
   if (j) { e.preventDefault(); $(j.dataset.jump).scrollIntoView({ behavior:"smooth", block:"start" }); return; }
