@@ -167,6 +167,7 @@
     .gc-name { font-size:.9rem; }
     .gc-score { font-size:1.9rem; }
   }
+.mvs{margin-top:4px;font-size:13px;font-weight:700;opacity:.85;letter-spacing:.3px}
 </style>
 </head>
 <body>
@@ -729,8 +730,19 @@ function renderGameCenter() {
     { sort:"PPG", then:"P", player:"Player", center:true, empty:noneFor("skater stats") });
   table($("gc-go"), goalieCols(), goalieAgg(goIn),
     { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:noneFor("goalie stats") });
-  table($("gc-pen"), penaltyCols(), penaltyAgg(penRows),
-    { sort:"PIM", pen:"Player", center:true, empty:noneFor("penalties") });
+  if (g._played) {
+    // Box-score style: one row per penalty
+    const list = penRows.map(r => { const b = isBench(r); return { Player: b ? "Bench" : (r.Player || "Unknown"), Jersey: b ? "" : r.Jersey, JN: b ? null : num(r.Jersey), _bench: b, Penalty: r.Penalty, PIM: num(r.PIM) }; });
+    table($("gc-pen"), [
+      { k:"Player", l:"Player" },
+      { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) },
+      { k:"Penalty", l:"Penalty" },
+      { k:"PIM", l:"PIM", n:true, f:r => pimFmt(r.PIM) }
+    ], list, { pen:"Player", center:true, empty:noneFor("penalties") });
+  } else {
+    table($("gc-pen"), penaltyCols(), penaltyAgg(penRows),
+      { sort:"PIM", pen:"Player", center:true, empty:noneFor("penalties") });
+  }
 }
 
 function openGameCenter(key) {
@@ -774,10 +786,11 @@ function miniTable(headers, rows) {
 }
 const mtile = (l, v) => `<div class="mtile"><div class="l">${l}</div><div class="v">${v}</div></div>`;
 
-function openPlayer(name) {
+function openPlayer(name, opp) {
+  const vs = r => !opp || normOpp(r.Opponent) === normOpp(opp);
   const ro = D.roster.find(r => r.Player === name);
-  const srows = D.skaters.filter(r => r.Player === name).sort((a, b) => ts(a.Date) - ts(b.Date));
-  const grows = D.goalies.filter(r => r.Goalie === name).sort((a, b) => ts(a.Date) - ts(b.Date));
+  const srows = D.skaters.filter(r => r.Player === name && vs(r)).sort((a, b) => ts(a.Date) - ts(b.Date));
+  const grows = D.goalies.filter(r => r.Goalie === name && vs(r)).sort((a, b) => ts(a.Date) - ts(b.Date));
   const jersey = ro?.Jersey || srows[0]?.Jersey || grows[0]?.Jersey || "";
   let tiles = "", log = "";
   if (srows.length) {
@@ -790,18 +803,19 @@ function openPlayer(name) {
     tiles = mtile("GP", a.GP) + mtile("W", a.W) + mtile("L", a.L) + mtile("GA", a.GA) + mtile("GAA", a.GAA === null ? "—" : a.GAA.toFixed(2)) + mtile("SO", a.SO);
     log = miniTable(["Gm", "Date", "Opponent", "Dec.", "GA", "MIN"],
       grows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), bool(r.W) ? "W" : bool(r.L) ? "L" : bool(r.T) ? "T" : bool(r.OT) ? "OTL" : "—", esc(r.GA), esc(r.Minutes)]));
-  } else tiles = `<div class="msg" style="width:100%">No game stats.</div>`;
-  const pens = D.penalties.filter(r => r.Player === name);
+  } else tiles = `<div class="msg" style="width:100%">No game stats${opp ? " against " + esc(opp) : ""}.</div>`;
+  const pens = D.penalties.filter(r => r.Player === name && vs(r));
   const penLine = pens.length ? `<p class="note" style="padding:8px 20px 0">Penalties: ${pens.length} for ${pimFmt(pens.reduce((s, r) => s + num(r.PIM), 0))} PIM</p>` : "";
-  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${playerSub(ro, jersey)}</div><h2>${esc(name)}</h2></div>
+  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${playerSub(ro, jersey)}</div><h2>${esc(name)}</h2>${opp ? `<div class="mvs">vs ${esc(opp)}</div>` : ""}</div>
     <div class="mtiles">${tiles}</div>${penLine}<div class="mlog">${log}</div>`;
   $("modal").classList.add("open");
 }
 
 // Penalty card: same header as the player card, but only penalty info (and every penalty listed)
-function openPenaltyCard(name) {
+function openPenaltyCard(name, opp) {
   const bench = name === "Bench";
   const rows = D.penalties
+    .filter(r => !opp || normOpp(r.Opponent) === normOpp(opp))
     .filter(r => bench ? isBench(r) : (!isBench(r) && (r.Player || "Unknown") === name))
     .sort((a, b) => ts(a.Date) - ts(b.Date) || num(a.Game) - num(b.Game));
   const ro = bench ? null : D.roster.find(r => r.Player === name);
@@ -812,13 +826,13 @@ function openPenaltyCard(name) {
   const counts = new Map(); rows.forEach(r => counts.set(r.Penalty, (counts.get(r.Penalty) || 0) + 1));
   const common = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
   const tiles = mtile("Penalties", rows.length) + mtile("PIM", pimFmt(total)) + mtile("Games", games) + mtile("PIM / Game", games ? pimFmt(total / games) : "—");
-  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${sub}</div><h2>${esc(name)}</h2></div>
+  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${sub}</div><h2>${esc(name)}</h2>${opp ? `<div class="mvs">vs ${esc(opp)}</div>` : ""}</div>
     <div class="mtiles">${tiles}</div>
     ${common ? `<p class="note" style="padding:8px 20px 0">Most common: ${esc(common[0])} (${common[1]})</p>` : ""}
     <div class="mlog">${rows.length
       ? miniTable(["Gm", "Date", "Opponent", "Penalty", "PIM"],
           rows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), esc(r.Penalty), esc(r.PIM)]))
-      : `<div class="msg">No penalties recorded.</div>`}</div>`;
+      : `<div class="msg">No penalties recorded${opp ? " against " + esc(opp) : ""}.</div>`}</div>`;
   $("modal").classList.add("open");
 }
 const closeModal = () => $("modal").classList.remove("open");
@@ -899,10 +913,13 @@ document.addEventListener("click", e => {
   if (j) { e.preventDefault(); $(j.dataset.jump).scrollIntoView({ behavior:"smooth", block:"start" }); return; }
   const gm = e.target.closest("[data-game]");
   if (gm && gm.dataset.game) { openGameCenter(gm.dataset.game); return; }
+  // Cards opened from inside the Game Center only show that opponent
+  const inGC = e.target.closest("#view-gamecenter");
+  const gcOpp = inGC ? D.team.find(x => x._key === currentGC)?.Opponent : null;
   const pn = e.target.closest("[data-pen]");
-  if (pn && pn.dataset.pen) { openPenaltyCard(pn.dataset.pen); return; }
+  if (pn && pn.dataset.pen) { openPenaltyCard(pn.dataset.pen, gcOpp); return; }
   const p = e.target.closest("[data-player]");
-  if (p && p.dataset.player) openPlayer(p.dataset.player);
+  if (p && p.dataset.player) openPlayer(p.dataset.player, gcOpp);
 });
 $("mclose").onclick = closeModal;
 $("modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
