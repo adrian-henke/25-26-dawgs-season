@@ -256,8 +256,10 @@ const isCatch = p => isGoalie(p) || /^(regular|full)/i.test(handOf(p));   // goa
 // Roster filter groups: G = Goalies, D = Defensemen, anything else with a position = Forwards
 const groupOf = p => { const s = String(p.Position || "").trim(); return !s ? "" : /^g/i.test(s) ? "Goalies" : /^d/i.test(s) ? "Defensemen" : "Forwards"; };
 
-// Tournament rows: "T" in the Game column; Rink holds "Tournament name | City, ST"
-const isT = g => String(g.Game || "").trim().toUpperCase() === "T";
+// Tournament placeholder rows: Type is Tournament AND Time and Opponent are both TBD.
+// (A "T" in the Game column also counts.) Rink holds "Tournament name | City, ST".
+const isTBD = v => /^\s*(tbd|tba)?\s*$/i.test(String(v ?? ""));
+const isTourney = g => (/tournament/i.test(g.Type || "") && isTBD(g.Time) && isTBD(g.Opponent)) || String(g.Game || "").trim().toUpperCase() === "T";
 const splitRink = r => { const s = String(r || ""); const i = s.indexOf("|"); return i < 0 ? [s.trim(), ""] : [s.slice(0, i).trim(), s.slice(i + 1).trim()]; };
 
 function ts(d, t) {
@@ -269,13 +271,8 @@ function ts(d, t) {
   if (tm) { h = (+tm[1]) % 12; if ((tm[3] || "").toUpperCase() === "PM") h += 12; mi = +tm[2]; }
   return new Date(y, +m[1] - 1, +m[2], h, mi).getTime();
 }
-// Shows the year only when it differs from the current year (e.g. games in 2027)
-const shortDate = d => {
-  const t = ts(d); if (!t) return d;
-  const dt = new Date(t), o = { month:"short", day:"numeric" };
-  if (dt.getFullYear() !== new Date().getFullYear()) o.year = "numeric";
-  return dt.toLocaleDateString("en-US", o);
-};
+// Dates are shown without the year (Jan 15)
+const shortDate = d => { const t = ts(d); return t ? new Date(t).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : d; };
 
 function parseCSV(text) {
   const rows = []; let row = [], cur = "", q = false;
@@ -360,7 +357,7 @@ function prepGames(rows) {
     if (r) code = r.startsWith("W") ? "W" : r.startsWith("T") ? "T" : (r === "OTL" || r === "SOL") ? "OTL" : (ot ? "OTL" : "L");
     const suffix = bool(g.Shootout) ? " (SO)" : bool(g.OT) ? " (OT)" : "";
     return { ...g, _ts: ts(g.Date, g.Time), _gm: num(g.Game), _code: code, _played: code !== "", _suffix: suffix,
-             _tourn: isT(g), _future: ts(g.Date) >= today0.getTime() };
+             _tourn: isTourney(g), _future: ts(g.Date) >= today0.getTime() };
   }).sort((a, b) => a._ts - b._ts || a._gm - b._gm);
 }
 const inType = r => !typeFilter || r.Type === typeFilter;
@@ -432,16 +429,16 @@ function renderTicker() {
       <div class="trow dim"><span>${vs(g)}</span><span>${esc(g.GA)}</span></div>
       <div class="tres ${g._code}">${g._code === "W" ? "WIN" : g._code === "L" ? "LOSS" : g._code}</div></div>`).join("");
   const up = upcoming.map((g, i) => {
-    const when = esc(shortDate(g.Date)) + (g.Time ? ` &bull; ${esc(g.Time)}` : "");
     const cls = `tgame upcoming${i === 0 ? " next" : ""}`;
     if (g._tourn) {
-      // Tournament: name (left of |) replaces the team name, location (right of |) replaces the opponent
+      // Tournament card: date / tournament name (left of |) / location (right of |)
       const [name, loc] = splitRink(g.Rink);
-      return `<div class="${cls}"><div class="tdate">${when}</div>
+      return `<div class="${cls}"><div class="tdate">${esc(shortDate(g.Date))}</div>
         <div class="up-line">${esc(name || "Tournament")}</div>
         <div class="trow dim"><span>${esc(loc) || "&nbsp;"}</span></div>
         <div class="tres up">UPCOMING</div></div>`;
     }
+    const when = esc(shortDate(g.Date)) + (g.Time ? ` &bull; ${esc(g.Time)}` : "");
     return `<div class="${cls}"><div class="tdate">${when}</div>
       <div class="up-line">${esc(CFG.teamName)}</div>
       <div class="trow dim"><span>${vs(g)}</span></div>
@@ -505,7 +502,7 @@ function renderHome() {
 
 function scheduleCols() {
   return [
-    { k:"_gm", l:"#", n:true, f:g => esc(g.Game) },
+    { k:"_gm", l:"Game", n:true, f:g => esc(g.Game) },
     { k:"_ts", l:"Date", n:true, f:g => esc(shortDate(g.Date)) },
     { k:"Time", l:"Time" },
     { k:"Opponent", l:"Opponent", f:g => vs(g) },
