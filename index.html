@@ -172,6 +172,7 @@
 #gc-pen th,#gc-pen td,#tbl-penalties th,#tbl-penalties td,table.even th,table.even td{text-align:center}
 #gc-pen th:not(:only-child),#tbl-penalties th{width:20%}
 table.even th{width:16.66%}
+table.even th:nth-child(1){width:9%}table.even th:nth-child(2){width:14%}table.even th:nth-child(3){width:27%}table.even th:nth-child(4){width:27%}table.even th:nth-child(5){width:13%}table.even th:nth-child(6){width:10%}
 </style>
 </head>
 <body>
@@ -346,6 +347,7 @@ function ts(d, t) {
   return new Date(y, +m[1] - 1, +m[2], h, mi).getTime();
 }
 // Dates are shown without the year (Jan 15)
+const longDate = d => { const t = ts(d); return t ? new Date(t).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" }) : d; };
 const shortDate = d => { const t = ts(d); return t ? new Date(t).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : d; };
 
 function parseCSV(text) {
@@ -686,8 +688,8 @@ function renderGameCenter() {
   const tag = g._played ? "This Game" : `vs ${esc(opp)}`;
   const noneFor = what => g._played ? `No ${what} recorded for this game.` : `No ${what} against ${esc(opp)}.`;
 
-  const when = esc(shortDate(g.Date)) + (!isTBD(g.Time) ? ` &bull; ${esc(g.Time)}` : "");
-  const where = [g.Rink, g["Home/Away"]].filter(Boolean).map(esc).join(" &bull; ");
+  const when = esc(longDate(g.Date)) + (!isTBD(g.Time) ? ` &bull; ${esc(g.Time)}` : "");
+  const where = [g.Game && !/^t$/i.test(String(g.Game).trim()) ? "Game " + g.Game : "", g.Rink, g["Home/Away"]].filter(Boolean).map(esc).join(" &bull; ");
   const center = g._played
     ? `<div class="gc-status">FINAL${esc(g._suffix)}</div><div class="gc-score">${esc(g.GF)} – ${esc(g.GA)}</div>
        <div class="gc-meta">${when}<br>${where}</div><div style="margin-top:8px">${badge(g)}</div>`
