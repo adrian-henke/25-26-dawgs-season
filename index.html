@@ -65,12 +65,11 @@
   .note { font-size:.8rem; color:var(--muted); margin:0 2px 10px; }
   .note.after { margin:8px 2px 0; }
 
-  /* KPI tiles: always a single row (scrolls sideways on small screens) */
+  /* KPI tiles: centered, one-line titles, always a single row (scrolls sideways on small screens) */
   .stats { display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; scrollbar-width:thin; }
-  .stat { flex:1 1 0; min-width:104px; background:linear-gradient(160deg,var(--blue) 0%,var(--blue-dark) 100%); color:#fff;
-          border-radius:12px; padding:16px 12px; box-shadow:0 4px 14px rgba(24,75,154,.28); }
-  .stat.wide { flex:1.7 1 0; min-width:160px; }
-  .stat .lbl { font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:rgba(255,255,255,.78); line-height:1.25; min-height:2.5em; }
+  .stat { flex:1 0 auto; text-align:center; background:linear-gradient(160deg,var(--blue) 0%,var(--blue-dark) 100%); color:#fff;
+          border-radius:12px; padding:16px 14px; box-shadow:0 4px 14px rgba(24,75,154,.28); }
+  .stat .lbl { font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:rgba(255,255,255,.78); white-space:nowrap; }
   .stat .val { font-size:1.75rem; font-weight:800; margin-top:6px; white-space:nowrap; }
 
   /* Leaders (every row uses the same font sizes) */
@@ -139,7 +138,7 @@
   .pcard .mini { display:flex; gap:12px; margin-top:8px; font-size:.78rem; color:var(--muted); }
   .pcard .mini b { color:var(--ink); }
 
-  /* Modal */
+  /* Modal (player card and penalty card) */
   .modal { position:fixed; inset:0; background:rgba(10,20,40,.65); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow-y:auto; z-index:50; }
   .modal.open { display:flex; }
   .modal-card { background:var(--card); border-radius:12px; width:100%; max-width:760px; position:relative; overflow:hidden; }
@@ -149,7 +148,7 @@
   .mhead h2 { font-size:1.5rem; margin-top:2px; }
   .mtiles { display:flex; flex-wrap:wrap; gap:8px; padding:16px 20px 4px; }
   .mtile { flex:1; min-width:70px; background:var(--card-2); border:1px solid var(--line); border-radius:8px; padding:10px; text-align:center; }
-  .mtile .l { font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .mtile .l { font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); white-space:nowrap; }
   .mtile .v { font-size:1.3rem; font-weight:800; }
   .mlog { padding:8px 0 4px; }
 
@@ -252,8 +251,20 @@ const CFG = {
   crestText: "UD",
   season: "2026-27 Season",
 
-  // Logo file: upload it to the same folder as index.html in your GitHub repo
-  logo: "logo.png",
+  // Dawgs logo: the file name in your GitHub repo (same folder as index.html). Case-sensitive.
+  logo: "Utah_Dawgs.png",
+
+  // Opponent logos for the Game Center page.
+  // Add one line per team:  "Team name exactly as it appears in Team Stats": "file name in your repo",
+  // Teams without a line (or whose file isn't found) show their initials instead.
+  teamLogos: {
+    "Southern Utah Yeti":   "Southern_Utah_Yeti.png",
+    "DC Wind B":            "DC_Wind.png",
+    "Ogden Jr. Mustangs B": "Ogden_Jr_Mustangs.png", 
+    "Vernal Raptors Black": "Vernal_Raptors.png",
+    "Park City Ice Miners B": "Park_City_Ice_Miners.png"
+
+  },
 
   sheetId: "1GAJflAWGoU1IDHfo6iZNgNLCzLzDGUVUpffetXVG71g",
 
@@ -294,6 +305,12 @@ const handOf = p => { const k = Object.keys(p || {}).find(k => /shoot|catch/i.te
 const isCatch = p => isGoalie(p) || /^(regular|full)/i.test(handOf(p));   // goalies: Regular / Full Right
 // Roster filter groups: G = Goalies, D = Defensemen, anything else with a position = Forwards
 const groupOf = p => { const s = String(p.Position || "").trim(); return !s ? "" : /^g/i.test(s) ? "Goalies" : /^d/i.test(s) ? "Defensemen" : "Forwards"; };
+// "#4 • D • Shoots L" line shown under a player's name on the player card and the penalty card
+const playerSub = (ro, jersey) => {
+  const hand = handOf(ro || {});
+  const ht = hand ? (isCatch(ro) ? hand : `Shoots ${hand}`) : "";
+  return [jersey, ro?.Position, ht].filter(Boolean).map(esc).join(" &bull; ");
+};
 
 // Tournament placeholder rows: Type is Tournament AND Time and Opponent are both TBD.
 // (A "T" in the Game column also counts.) Rink holds "Tournament name | City, ST".
@@ -302,6 +319,12 @@ const isTourney = g => (/tournament/i.test(g.Type || "") && isTBD(g.Time) && isT
 const splitRink = r => { const s = String(r || ""); const i = s.indexOf("|"); return i < 0 ? [s.trim(), ""] : [s.slice(0, i).trim(), s.slice(i + 1).trim()]; };
 const normOpp = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const initials = s => String(s || "").split(/\s+/).filter(w => /[a-z0-9]/i.test(w)).map(w => w[0]).join("").slice(0, 3).toUpperCase();
+// Logo file for an opponent, looked up in CFG.teamLogos by team name
+const teamLogoFile = name => {
+  const k = normOpp(name);
+  for (const [n, f] of Object.entries(CFG.teamLogos)) if (normOpp(n) === k) return f;
+  return "";
+};
 
 function ts(d, t) {
   const m = String(d || "").match(/(\d+)\/(\d+)\/(\d+)/);
@@ -341,12 +364,13 @@ async function loadTab(name) {
 
 /* Sortable table. cols: {k, l, n (numeric), mid (centered), f (custom cell html)}
    options: sort/asc (default sort), then (tie-break column, high to low), center (center numeric columns),
-            player (rows open the player page), game (rows with an opponent open the Game Center),
-            empty (message or function returning one) */
+            player (rows open the player card), pen (rows open the penalty card),
+            game (rows with an opponent open the Game Center), empty (message or function returning one) */
 function table(el, cols, rows, o = {}) {
   let sk = o.sort || null, asc = !!o.asc, view = [];
   const rowAttr = r => {
     if (o.game && r._hasOpp) return ` class="click" data-game="${esc(r._key)}"`;
+    if (o.pen) return ` class="click" data-pen="${esc(r[o.pen])}"`;
     if (o.player && !r._bench) return ` class="click" data-player="${esc(r[o.player])}"`;
     return "";
   };
@@ -383,7 +407,7 @@ function table(el, cols, rows, o = {}) {
 }
 
 const renderTiles = (el, tiles) => {
-  el.innerHTML = tiles.map(([a, b, wide]) => `<div class="stat${wide ? " wide" : ""}"><div class="lbl">${a}</div><div class="val">${b}</div></div>`).join("");
+  el.innerHTML = tiles.map(([a, b]) => `<div class="stat"><div class="lbl">${a}</div><div class="val">${b}</div></div>`).join("");
 };
 
 /* =====================================================
@@ -557,7 +581,7 @@ function renderHome() {
   // Team PIM = every row in Penalty Stats, including bench minors
   const pims = D.penalties.filter(inType).reduce((s, r) => s + num(r.PIM), 0);
   renderTiles($("stats"), [
-    ["Record (W-L-T-OTL)", `${w}-${l}-${t}-${otl}`, true], ["Games Played", gp],
+    ["Record (W-L-T-OTL)", `${w}-${l}-${t}-${otl}`], ["Games Played", gp],
     ["Win %", gp ? Math.round((w / gp) * 100) + "%" : "—"],
     ["Goals For", gf], ["Goals Against", ga], ["Goal Diff", signed(gf - ga)],
     ["GF / Game", gp ? (gf / gp).toFixed(2) : "—"], ["GA / Game", gp ? (ga / gp).toFixed(2) : "—"],
@@ -623,7 +647,8 @@ function renderPenalties() {
   $("pen-summary").textContent = raw.length
     ? `Team total: ${raw.length} penalties, ${pimFmt(total)} PIM (includes ${bench.length} bench ${bench.length === 1 ? "penalty" : "penalties"}, ${pimFmt(benchPIM)} PIM).`
     : "";
-  PEN.t = table($("tbl-penalties"), penaltyCols(), PEN.rows.filter(hit), { sort:"PIM", player:"Player", center:true, empty:searchEmpty("No penalties recorded.") });
+  // Clicking a row opens the penalty card (all of that player's penalties)
+  PEN.t = table($("tbl-penalties"), penaltyCols(), PEN.rows.filter(hit), { sort:"PIM", pen:"Player", center:true, empty:searchEmpty("No penalties recorded.") });
 }
 
 /* ----- Game Center: head-to-head history against this game's opponent (uses all games, ignores the game-type filter) ----- */
@@ -645,11 +670,15 @@ function renderGameCenter() {
        <div class="gc-meta">${when}<br>${where}</div><div style="margin-top:8px">${badge(g)}</div>`
     : `<div class="gc-status">UPCOMING</div><div class="gc-score">VS</div><div class="gc-meta">${when}<br>${where}</div>`;
 
+  // Opponent badge: their logo file from CFG.teamLogos, or their initials if there's no file
+  const oppInit = esc(initials(opp)), oppFile = teamLogoFile(opp);
+  const oppBadge = oppFile ? `<img src="${esc(oppFile)}" alt="" onerror="this.parentNode.textContent='${oppInit}'">` : oppInit;
+
   $("gc").innerHTML = `
     <div class="gc-hero">
       <div class="gc-team"><div class="gc-badge"><img src="${esc(CFG.logo)}" alt="" onerror="this.parentNode.textContent='${esc(CFG.crestText)}'"></div><div class="gc-name">${esc(CFG.teamName)}</div></div>
       <div class="gc-mid">${center}</div>
-      <div class="gc-team"><div class="gc-badge">${esc(initials(opp))}</div><div class="gc-name">${esc(opp)}</div></div>
+      <div class="gc-team"><div class="gc-badge">${oppBadge}</div><div class="gc-name">${esc(opp)}</div></div>
     </div>
     <h2 class="sec">Head-to-Head vs ${esc(opp)}</h2>
     <div class="stats" id="gc-stats"></div>
@@ -665,7 +694,7 @@ function renderGameCenter() {
 
   renderTiles($("gc-stats"), [
     ["Games Played", gp],
-    ["Record (W-L-T-OTL)", `${won}-${cnt("L")}-${cnt("T")}-${cnt("OTL")}`, true],
+    ["Record (W-L-T-OTL)", `${won}-${cnt("L")}-${cnt("T")}-${cnt("OTL")}`],
     ["Win %", gp ? Math.round((won / gp) * 100) + "%" : "—"],
     ["Goals For", gf], ["Goals Against", ga], ["Goal Diff", signed(gf - ga)],
     ["Penalty Min", pimFmt(pim)]
@@ -684,7 +713,7 @@ function renderGameCenter() {
   table($("gc-go"), goalieCols(), goalieAgg(D.goalies.filter(sameOpp)),
     { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:`No goalie stats against ${esc(opp)} yet.` });
   table($("gc-pen"), penaltyCols(), penaltyAgg(penRows),
-    { sort:"PIM", player:"Player", center:true, empty:`No penalties against ${esc(opp)} yet.` });
+    { sort:"PIM", pen:"Player", center:true, empty:`No penalties against ${esc(opp)} yet.` });
 }
 
 function openGameCenter(key) {
@@ -718,36 +747,58 @@ function renderRoster() {
   }).join("") : `<div class="msg">Roster not available.</div>`;
 }
 
-/* ----- Player modal ----- */
+/* ----- Player card and penalty card (shown in the pop-up) ----- */
 function miniTable(headers, rows) {
   return `<div class="tablewrap"><table><thead><tr>${headers.map(h => `<th style="cursor:default">${h}</th>`).join("")}</tr></thead>
     <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
+const mtile = (l, v) => `<div class="mtile"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+
 function openPlayer(name) {
   const ro = D.roster.find(r => r.Player === name);
   const srows = D.skaters.filter(r => r.Player === name).sort((a, b) => ts(a.Date) - ts(b.Date));
   const grows = D.goalies.filter(r => r.Goalie === name).sort((a, b) => ts(a.Date) - ts(b.Date));
   const jersey = ro?.Jersey || srows[0]?.Jersey || grows[0]?.Jersey || "";
   let tiles = "", log = "";
-  const tile = (l, v) => `<div class="mtile"><div class="l">${l}</div><div class="v">${v}</div></div>`;
   if (srows.length) {
     const a = skaterAgg(srows)[0];
-    tiles = tile("GP", a.GP) + tile("G", a.G) + tile("A", a.A) + tile("P", a.P) + tile("+/-", signed(a.PM)) + tile("P/GP", a.PPG.toFixed(2));
+    tiles = mtile("GP", a.GP) + mtile("G", a.G) + mtile("A", a.A) + mtile("P", a.P) + mtile("+/-", signed(a.PM)) + mtile("P/GP", a.PPG.toFixed(2));
     log = miniTable(["Gm", "Date", "Opponent", "G", "A", "P", "+/-"],
       srows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), esc(r.G), esc(r.A), esc(r.P), pm(num(r[PM_KEY]))]));
   } else if (grows.length) {
     const a = goalieAgg(grows)[0];
-    tiles = tile("GP", a.GP) + tile("W", a.W) + tile("L", a.L) + tile("GA", a.GA) + tile("GAA", a.GAA === null ? "—" : a.GAA.toFixed(2)) + tile("SO", a.SO);
+    tiles = mtile("GP", a.GP) + mtile("W", a.W) + mtile("L", a.L) + mtile("GA", a.GA) + mtile("GAA", a.GAA === null ? "—" : a.GAA.toFixed(2)) + mtile("SO", a.SO);
     log = miniTable(["Gm", "Date", "Opponent", "Dec.", "GA", "MIN"],
       grows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), bool(r.W) ? "W" : bool(r.L) ? "L" : bool(r.T) ? "T" : bool(r.OT) ? "OTL" : "—", esc(r.GA), esc(r.Minutes)]));
   } else tiles = `<div class="msg" style="width:100%">No game stats yet.</div>`;
   const pens = D.penalties.filter(r => r.Player === name);
   const penLine = pens.length ? `<p class="note" style="padding:8px 20px 0">Penalties: ${pens.length} for ${pimFmt(pens.reduce((s, r) => s + num(r.PIM), 0))} PIM</p>` : "";
-  const hand = handOf(ro || {});
-  const handTxt = hand ? (isCatch(ro) ? hand : `Shoots ${hand}`) : "";
-  const sub = [jersey, ro?.Position, handTxt].filter(Boolean).map(esc).join(" &bull; ");
-  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${sub}</div><h2>${esc(name)}</h2></div>
+  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${playerSub(ro, jersey)}</div><h2>${esc(name)}</h2></div>
     <div class="mtiles">${tiles}</div>${penLine}<div class="mlog">${log}</div>`;
+  $("modal").classList.add("open");
+}
+
+// Penalty card: same header as the player card, but only penalty info (and every penalty listed)
+function openPenaltyCard(name) {
+  const bench = name === "Bench";
+  const rows = D.penalties
+    .filter(r => bench ? isBench(r) : (!isBench(r) && (r.Player || "Unknown") === name))
+    .sort((a, b) => ts(a.Date) - ts(b.Date) || num(a.Game) - num(b.Game));
+  const ro = bench ? null : D.roster.find(r => r.Player === name);
+  const jersey = bench ? "" : (ro?.Jersey || rows[0]?.Jersey || "");
+  const sub = bench ? "Bench minors" : playerSub(ro, jersey);
+  const total = rows.reduce((s, r) => s + num(r.PIM), 0);
+  const games = new Set(rows.map(r => r.Game)).size;
+  const counts = new Map(); rows.forEach(r => counts.set(r.Penalty, (counts.get(r.Penalty) || 0) + 1));
+  const common = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const tiles = mtile("Penalties", rows.length) + mtile("PIM", pimFmt(total)) + mtile("Games", games) + mtile("PIM / Game", games ? pimFmt(total / games) : "—");
+  $("mbody").innerHTML = `<div class="mhead"><div class="mj">${sub}</div><h2>${esc(name)}</h2></div>
+    <div class="mtiles">${tiles}</div>
+    ${common ? `<p class="note" style="padding:8px 20px 0">Most common: ${esc(common[0])} (${common[1]})</p>` : ""}
+    <div class="mlog">${rows.length
+      ? miniTable(["Gm", "Date", "Opponent", "Penalty", "PIM"],
+          rows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), esc(r.Penalty), esc(r.PIM)]))
+      : `<div class="msg">No penalties recorded.</div>`}</div>`;
   $("modal").classList.add("open");
 }
 const closeModal = () => $("modal").classList.remove("open");
@@ -827,6 +878,8 @@ document.addEventListener("click", e => {
   if (j) { e.preventDefault(); $(j.dataset.jump).scrollIntoView({ behavior:"smooth", block:"start" }); return; }
   const gm = e.target.closest("[data-game]");
   if (gm && gm.dataset.game) { openGameCenter(gm.dataset.game); return; }
+  const pn = e.target.closest("[data-pen]");
+  if (pn && pn.dataset.pen) { openPenaltyCard(pn.dataset.pen); return; }
   const p = e.target.closest("[data-player]");
   if (p && p.dataset.player) openPlayer(p.dataset.player);
 });
