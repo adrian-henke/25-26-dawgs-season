@@ -168,6 +168,10 @@
     .gc-score { font-size:1.9rem; }
   }
 .mvs{margin-top:4px;font-size:13px;font-weight:700;opacity:.85;letter-spacing:.3px}
+#gc-pen table,#tbl-penalties table,table.even{table-layout:fixed;width:100%}
+#gc-pen th,#gc-pen td,#tbl-penalties th,#tbl-penalties td,table.even th,table.even td{text-align:center}
+#gc-pen th:not(:only-child),#tbl-penalties th{width:20%}
+table.even th{width:16.66%}
 </style>
 </head>
 <body>
@@ -304,6 +308,7 @@ const signed = n => n > 0 ? "+" + n : String(n);
 const pm = n => `<span class="${n > 0 ? "pos" : n < 0 ? "neg" : ""}">${signed(n)}</span>`;
 const pimFmt = v => +Number(v).toFixed(1);
 
+const penType = v => { const n = +v; return n === 1.5 ? "Minor" : n === 4 ? "Major" : n === 8 ? "Misconduct" : ""; };
 const isBench = r => /bench/i.test(r.Player || "") || /bench/i.test(r.Jersey || "") || /bench/i.test(r.Position || "");
 const isGoalie = p => /^g/i.test(String(p.Position || "").trim());
 const handOf = p => { const k = Object.keys(p || {}).find(k => /shoot|catch/i.test(k)); return k ? p[k] : ""; };
@@ -732,12 +737,13 @@ function renderGameCenter() {
     { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:noneFor("goalie stats") });
   if (g._played) {
     // Box-score style: one row per penalty
-    const list = penRows.map(r => { const b = isBench(r); return { Player: b ? "Bench" : (r.Player || "Unknown"), Jersey: b ? "" : r.Jersey, JN: b ? null : num(r.Jersey), _bench: b, Penalty: r.Penalty, PIM: num(r.PIM) }; });
+    const list = penRows.map(r => { const b = isBench(r); return { Player: b ? "Bench" : (r.Player || "Unknown"), Jersey: b ? "" : r.Jersey, JN: b ? null : num(r.Jersey), _bench: b, Penalty: r.Penalty, Type: penType(num(r.PIM)), PIM: num(r.PIM) }; });
     table($("gc-pen"), [
-      { k:"Player", l:"Player" },
-      { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) },
-      { k:"Penalty", l:"Penalty" },
-      { k:"PIM", l:"PIM", n:true, f:r => pimFmt(r.PIM) }
+      { k:"Player", l:"Player", mid:true },
+      { k:"JN", l:"Jersey", n:true, mid:true, f:r => esc(r.Jersey) },
+      { k:"Penalty", l:"Penalty", mid:true },
+      { k:"Type", l:"Type", mid:true, f:r => esc(r.Type) },
+      { k:"PIM", l:"PIM", n:true, mid:true, f:r => pimFmt(r.PIM) }
     ], list, { pen:"Player", center:true, empty:noneFor("penalties") });
   } else {
     table($("gc-pen"), penaltyCols(), penaltyAgg(penRows),
@@ -780,8 +786,8 @@ function renderRoster() {
 }
 
 /* ----- Player card and penalty card (shown in the pop-up) ----- */
-function miniTable(headers, rows) {
-  return `<div class="tablewrap"><table><thead><tr>${headers.map(h => `<th style="cursor:default">${h}</th>`).join("")}</tr></thead>
+function miniTable(headers, rows, even) {
+  return `<div class="tablewrap"><table${even ? ' class="even"' : ""}><thead><tr>${headers.map(h => `<th style="cursor:default">${h}</th>`).join("")}</tr></thead>
     <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 const mtile = (l, v) => `<div class="mtile"><div class="l">${l}</div><div class="v">${v}</div></div>`;
@@ -830,8 +836,8 @@ function openPenaltyCard(name, opp) {
     <div class="mtiles">${tiles}</div>
     ${common ? `<p class="note" style="padding:8px 20px 0">Most common: ${esc(common[0])} (${common[1]})</p>` : ""}
     <div class="mlog">${rows.length
-      ? miniTable(["Gm", "Date", "Opponent", "Penalty", "PIM"],
-          rows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), esc(r.Penalty), esc(r.PIM)]))
+      ? miniTable(["Gm", "Date", "Opponent", "Penalty", "Type", "PIM"],
+          rows.map(r => [esc(r.Game), esc(shortDate(r.Date)), esc(r.Opponent), esc(r.Penalty), esc(penType(num(r.PIM))), esc(r.PIM)]), true)
       : `<div class="msg">No penalties recorded${opp ? " against " + esc(opp) : ""}.</div>`}</div>`;
   $("modal").classList.add("open");
 }
