@@ -657,7 +657,11 @@ function renderPenalties() {
   PEN.t = table($("tbl-penalties"), penaltyCols(), PEN.rows.filter(hit), { sort:"PIM", pen:"Player", center:true, empty:searchEmpty("No penalties recorded.") });
 }
 
-/* ----- Game Center: head-to-head history against this game's opponent (uses all games, ignores the game-type filter) ----- */
+/* ----- Game Center -----
+   Head-to-Head and Previous Meetings always cover every game against this opponent.
+   Upcoming game: the skater, goalie and penalty tables also cover every game against the opponent.
+   Finished game: the skater, goalie and penalty tables cover only that one game.
+   (Ignores the game-type filter.) */
 function renderGameCenter() {
   const g = D.team.find(x => x._key === currentGC);
   if (!g) { currentGC = null; showView("schedule"); return; }
@@ -666,8 +670,15 @@ function renderGameCenter() {
   const cnt = c => meet.filter(x => x._code === c).length;
   const gp = meet.length, won = cnt("W");
   const gf = meet.reduce((s, x) => s + num(x.GF), 0), ga = meet.reduce((s, x) => s + num(x.GA), 0);
-  const penRows = D.penalties.filter(sameOpp);
-  const pim = penRows.reduce((s, r) => s + num(r.PIM), 0);
+
+  // Which player rows feed the tables below
+  const thisGame = r => sameOpp(r) && String(r.Game).trim() === String(g.Game).trim();
+  const scope = g._played ? thisGame : sameOpp;
+  const skIn = D.skaters.filter(scope), goIn = D.goalies.filter(scope), penRows = D.penalties.filter(scope);
+  const pimAll = D.penalties.filter(sameOpp).reduce((s, r) => s + num(r.PIM), 0);   // Head-to-Head tile: all games
+  const pimScope = penRows.reduce((s, r) => s + num(r.PIM), 0);
+  const tag = g._played ? "This Game" : `vs ${esc(opp)}`;
+  const noneFor = what => g._played ? `No ${what} recorded for this game.` : `No ${what} against ${esc(opp)}.`;
 
   const when = esc(shortDate(g.Date)) + (!isTBD(g.Time) ? ` &bull; ${esc(g.Time)}` : "");
   const where = [g.Rink, g["Home/Away"]].filter(Boolean).map(esc).join(" &bull; ");
@@ -688,14 +699,14 @@ function renderGameCenter() {
     </div>
     <h2 class="sec">Head-to-Head vs ${esc(opp)}</h2>
     <div class="stats" id="gc-stats"></div>
-    <h2 class="sec">Previous Meetings</h2>
+    <h2 class="sec">${g._played ? "All Meetings" : "Previous Meetings"}</h2>
     <div class="card"><div class="tablewrap" id="gc-meet"></div></div>
-    <h2 class="sec">Skaters vs ${esc(opp)}</h2>
+    <h2 class="sec">Skaters ${tag}</h2>
     <div class="card"><div class="tablewrap" id="gc-sk"></div></div>
-    <h2 class="sec">Goalies vs ${esc(opp)}</h2>
+    <h2 class="sec">Goalies ${tag}</h2>
     <div class="card"><div class="tablewrap" id="gc-go"></div></div>
-    <h2 class="sec">Penalties vs ${esc(opp)}</h2>
-    <p class="note">${penRows.length ? `${penRows.length} penalties, ${pimFmt(pim)} PIM against ${esc(opp)} (includes bench minors).` : ""}</p>
+    <h2 class="sec">Penalties ${tag}</h2>
+    <p class="note">${penRows.length ? `${penRows.length} ${penRows.length === 1 ? "penalty" : "penalties"}, ${pimFmt(pimScope)} PIM ${g._played ? "in this game" : `against ${esc(opp)}`} (includes bench minors).` : ""}</p>
     <div class="card"><div class="tablewrap" id="gc-pen"></div></div>`;
 
   renderTiles($("gc-stats"), [
@@ -703,7 +714,7 @@ function renderGameCenter() {
     ["Record (W-L-T-OTL)", `${won}-${cnt("L")}-${cnt("T")}-${cnt("OTL")}`],
     ["Win %", gp ? Math.round((won / gp) * 100) + "%" : "—"],
     ["Goals For", gf], ["Goals Against", ga], ["Goal Diff", signed(gf - ga)],
-    ["Penalty Min", pimFmt(pim)]
+    ["Penalty Min", pimFmt(pimAll)]
   ]);
   table($("gc-meet"), [
     { k:"_gm", l:"Game", n:true, mid:true, f:x => esc(x.Game) },
@@ -714,12 +725,12 @@ function renderGameCenter() {
     { k:"_code", l:"Result", mid:true, f:x => badge(x) },
     { k:"Type", l:"Type" }
   ], meet, { sort:"_ts", empty:`No previous games against ${esc(opp)}.` });
-  table($("gc-sk"), skaterCols(), skRows(D.skaters.filter(sameOpp)),
-    { sort:"PPG", then:"P", player:"Player", center:true, empty:`No skater stats against ${esc(opp)}.` });
-  table($("gc-go"), goalieCols(), goalieAgg(D.goalies.filter(sameOpp)),
-    { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:`No goalie stats against ${esc(opp)}.` });
+  table($("gc-sk"), skaterCols(), skRows(skIn),
+    { sort:"PPG", then:"P", player:"Player", center:true, empty:noneFor("skater stats") });
+  table($("gc-go"), goalieCols(), goalieAgg(goIn),
+    { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:noneFor("goalie stats") });
   table($("gc-pen"), penaltyCols(), penaltyAgg(penRows),
-    { sort:"PIM", pen:"Player", center:true, empty:`No penalties against ${esc(opp)}.` });
+    { sort:"PIM", pen:"Player", center:true, empty:noneFor("penalties") });
 }
 
 function openGameCenter(key) {
