@@ -28,6 +28,13 @@
   .tgame .tres { margin-top:4px; font-size:.66rem; font-weight:800; letter-spacing:.05em; }
   .tres.W { color:#22c55e; } .tres.L { color:#f05252; } .tres.OTL { color:#f59e0b; } .tres.T { color:#9ca3af; } .tres.up { color:var(--blue-hi); }
   .tgame.upcoming .up-line { font-weight:700; margin:2px 0; }
+  /* Cards with an opponent link to that game's Game Center; a bar appears on hover */
+  .tgame.link { position:relative; cursor:pointer; transition:background .15s; }
+  .tgame.link:hover { background:#0c1830; }
+  .tgame .gc { position:absolute; left:0; right:0; bottom:0; height:30px; display:flex; align-items:center; justify-content:center;
+               background:var(--blue); color:#fff; font-size:.66rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+               opacity:0; transition:opacity .15s; }
+  .tgame.link:hover .gc { opacity:1; }
 
   /* Header */
   header { background:#000; color:#fff; border-bottom:3px solid var(--blue); }
@@ -87,7 +94,7 @@
   th .arrow { margin-left:4px; opacity:.85; }
   th.num, td.num { text-align:right; }
   table.ctr th.num, table.ctr td.num { text-align:center; }   /* Stats page: numbers centered under their titles */
-  table th.mid, table td.mid { text-align:center; }           /* Columns centered on every page (Score, Result, Pos) */
+  table th.mid, table td.mid { text-align:center; }           /* Columns centered on every page */
   td { padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td.txt { font-weight:600; }
   tbody tr:nth-child(even) { background:var(--card-2); }
@@ -103,6 +110,21 @@
   .jump { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
   .jump a { padding:6px 14px; border:1px solid var(--line); background:#fff; border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; color:var(--ink); }
   .jump a:hover { border-color:var(--blue); color:var(--blue); }
+
+  /* Game Center */
+  .back { background:none; border:0; color:var(--blue); font-weight:700; font-size:.9rem; cursor:pointer; margin-bottom:12px; padding:4px 0; }
+  .back:hover { text-decoration:underline; }
+  .gc-hero { background:linear-gradient(135deg,#000 0%,var(--blue-dark) 55%,var(--blue) 100%); color:#fff; border-radius:14px; padding:26px 20px;
+             display:flex; align-items:center; justify-content:space-around; gap:16px; box-shadow:0 6px 20px rgba(24,75,154,.3); }
+  .gc-team { text-align:center; flex:1; min-width:0; }
+  .gc-badge { width:84px; height:84px; border-radius:50%; background:rgba(255,255,255,.1); border:2px solid rgba(255,255,255,.25);
+              display:grid; place-items:center; margin:0 auto 10px; overflow:hidden; font-weight:800; font-size:1.4rem; }
+  .gc-badge img { width:100%; height:100%; object-fit:contain; }
+  .gc-name { font-weight:800; font-size:1.15rem; overflow-wrap:anywhere; }
+  .gc-mid { text-align:center; flex:1.2; }
+  .gc-status { font-size:.75rem; font-weight:800; letter-spacing:.12em; color:#9db5e0; }
+  .gc-score { font-size:2.6rem; font-weight:800; line-height:1.1; margin:6px 0; }
+  .gc-meta { font-size:.85rem; color:#c9d6ee; line-height:1.5; }
 
   /* Roster */
   .roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
@@ -141,6 +163,10 @@
     .brand h1 { font-size:1.4rem; }
     .brand p { font-size:.8rem; }
     td, th { padding:9px 10px; }
+    .gc-hero { padding:18px 10px; gap:8px; }
+    .gc-badge { width:56px; height:56px; font-size:1rem; }
+    .gc-name { font-size:.9rem; }
+    .gc-score { font-size:1.9rem; }
   }
 </style>
 </head>
@@ -173,7 +199,16 @@
   </section>
 
   <!-- SCHEDULE -->
-  <section class="view" id="view-schedule"><div class="card"><div class="tablewrap" id="tbl-schedule"></div></div></section>
+  <section class="view" id="view-schedule">
+    <p class="note">Tip: click any game with a listed opponent to open its Game Center.</p>
+    <div class="card"><div class="tablewrap" id="tbl-schedule"></div></div>
+  </section>
+
+  <!-- GAME CENTER (not in the menu; opened from the Schedule or the top cards) -->
+  <section class="view" id="view-gamecenter">
+    <button class="back" id="gc-back">&lsaquo; Back to Schedule</button>
+    <div id="gc"></div>
+  </section>
 
   <!-- STATS (skaters, goalies, penalties) -->
   <section class="view" id="view-stats">
@@ -228,6 +263,10 @@ const CFG = {
   // Game length in minutes, used for goals-against average (two goalies x 19.5 = 39)
   gameMinutes: 39,
 
+  // Cards across the top of the page
+  tickerPast: 4,    // previous games
+  tickerNext: 12,   // upcoming games
+
   refreshMinutes: 5
 };
 
@@ -261,6 +300,8 @@ const groupOf = p => { const s = String(p.Position || "").trim(); return !s ? ""
 const isTBD = v => /^\s*(tbd|tba)?\s*$/i.test(String(v ?? ""));
 const isTourney = g => (/tournament/i.test(g.Type || "") && isTBD(g.Time) && isTBD(g.Opponent)) || String(g.Game || "").trim().toUpperCase() === "T";
 const splitRink = r => { const s = String(r || ""); const i = s.indexOf("|"); return i < 0 ? [s.trim(), ""] : [s.slice(0, i).trim(), s.slice(i + 1).trim()]; };
+const normOpp = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const initials = s => String(s || "").split(/\s+/).filter(w => /[a-z0-9]/i.test(w)).map(w => w[0]).join("").slice(0, 3).toUpperCase();
 
 function ts(d, t) {
   const m = String(d || "").match(/(\d+)\/(\d+)\/(\d+)/);
@@ -298,11 +339,17 @@ async function loadTab(name) {
   return rows.slice(1).map(r => Object.fromEntries(headers.map((h, i) => [h, (r[i] ?? "").trim()])));
 }
 
-/* Sortable table. cols: {k, l, n (numeric), mid (centered on every page), f (custom cell html)}
+/* Sortable table. cols: {k, l, n (numeric), mid (centered), f (custom cell html)}
    options: sort/asc (default sort), then (tie-break column, high to low), center (center numeric columns),
-            player (click-through key), empty (message or function returning one) */
+            player (rows open the player page), game (rows with an opponent open the Game Center),
+            empty (message or function returning one) */
 function table(el, cols, rows, o = {}) {
   let sk = o.sort || null, asc = !!o.asc, view = [];
+  const rowAttr = r => {
+    if (o.game && r._hasOpp) return ` class="click" data-game="${esc(r._key)}"`;
+    if (o.player && !r._bench) return ` class="click" data-player="${esc(r[o.player])}"`;
+    return "";
+  };
   const draw = () => {
     view = [...rows];
     const c = cols.find(c => c.k === sk);
@@ -323,7 +370,7 @@ function table(el, cols, rows, o = {}) {
     }
     el.innerHTML = `<table${o.center ? ' class="ctr"' : ""}><thead><tr>${cols.map(c =>
       `<th data-k="${c.k}" class="${(c.n ? "num " : "") + (c.mid ? "mid" : "")}">${c.l}<span class="arrow">${c.k === sk ? (asc ? "▲" : "▼") : ""}</span></th>`).join("")}</tr></thead>
-      <tbody>${view.map(r => `<tr${o.player && !r._bench ? ` class="click" data-player="${esc(r[o.player])}"` : ""}>${cols.map(c =>
+      <tbody>${view.map(r => `<tr${rowAttr(r)}>${cols.map(c =>
         `<td class="${(c.n ? "num" : "txt") + (c.mid ? " mid" : "")}">${c.f ? c.f(r) : esc(r[c.k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     el.querySelectorAll("th").forEach(th => th.onclick = () => {
       const k = th.dataset.k, cc = cols.find(c => c.k === k);
@@ -335,12 +382,17 @@ function table(el, cols, rows, o = {}) {
   return { setRows(r) { rows = r; draw(); } };
 }
 
+const renderTiles = (el, tiles) => {
+  el.innerHTML = tiles.map(([a, b, wide]) => `<div class="stat${wide ? " wide" : ""}"><div class="lbl">${a}</div><div class="val">${b}</div></div>`).join("");
+};
+
 /* =====================================================
    DATA
    ===================================================== */
 const D = { team:[], skaters:[], penalties:[], goalies:[], roster:[] };
 let typeFilter = "", posFilter = "", PM_KEY = "Plus/Minus";
 let POS = new Map();
+let currentGC = null, pendingGC = null;
 const SK = { t:null, rows:[] }, GO = { t:null, rows:[] }, PEN = { t:null, rows:[] };
 
 function detectColumns() {
@@ -356,8 +408,10 @@ function prepGames(rows) {
     let code = "";
     if (r) code = r.startsWith("W") ? "W" : r.startsWith("T") ? "T" : (r === "OTL" || r === "SOL") ? "OTL" : (ot ? "OTL" : "L");
     const suffix = bool(g.Shootout) ? " (SO)" : bool(g.OT) ? " (OT)" : "";
+    const tourn = isTourney(g);
     return { ...g, _ts: ts(g.Date, g.Time), _gm: num(g.Game), _code: code, _played: code !== "", _suffix: suffix,
-             _tourn: isTourney(g), _future: ts(g.Date) >= today0.getTime() };
+             _tourn: tourn, _hasOpp: !tourn && !isTBD(g.Opponent), _future: ts(g.Date) >= today0.getTime(),
+             _key: [g.Game, g.Date, g.Time, g.Opponent].join("~") };
   }).sort((a, b) => a._ts - b._ts || a._gm - b._gm);
 }
 const inType = r => !typeFilter || r.Type === typeFilter;
@@ -382,6 +436,7 @@ function skaterAgg(rows) {
   });
   return [...m.values()].map(a => ({ ...a, JN: num(a.Jersey), PPG: a.GP ? +(a.P / a.GP).toFixed(2) : 0 }));
 }
+const skRows = rows => skaterAgg(rows).map(r => ({ ...r, Pos: POS.get(r.Player) || "" }));
 
 function goalieAgg(rows) {
   const m = new Map();
@@ -407,6 +462,30 @@ function penaltyAgg(rows) {
   return [...m.values()].map(a => ({ ...a, JN: a._bench ? null : num(a.Jersey), PIM: pimFmt(a.PIM), Common: [...a.types.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || "" }));
 }
 
+/* ----- Column sets (shared by the Stats page and the Game Center) ----- */
+const skaterCols = () => [
+  { k:"Player", l:"Player" },
+  { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"Pos", l:"Pos", mid:true },
+  { k:"GP", l:"GP", n:true }, { k:"G", l:"G", n:true }, { k:"A", l:"A", n:true },
+  { k:"P", l:"P", n:true, f:r => `<b>${r.P}</b>` },
+  { k:"PM", l:"+/-", n:true, f:r => pm(r.PM) },
+  { k:"PPG", l:"P/GP", n:true, f:r => `<b>${r.PPG.toFixed(2)}</b>` }
+];
+const goalieCols = () => [
+  { k:"Player", l:"Goalie" }, { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"GP", l:"GP", n:true },
+  { k:"W", l:"W", n:true }, { k:"L", l:"L", n:true }, { k:"T", l:"T", n:true }, { k:"OTL", l:"OTL", n:true },
+  { k:"GA", l:"GA", n:true }, { k:"MIN", l:"MIN", n:true },
+  { k:"GAA", l:"GAA", n:true, f:r => r.GAA === null ? "—" : `<b>${r.GAA.toFixed(2)}</b>` },
+  { k:"SO", l:"SO", n:true }
+];
+const penaltyCols = () => [
+  { k:"Player", l:"Player" },
+  { k:"JN", l:"Jersey", n:true, f:r => r._bench ? "—" : esc(r.Jersey) },
+  { k:"PEN", l:"Penalties", n:true },
+  { k:"PIM", l:"PIM", n:true, f:r => `<b>${r.PIM}</b>` },
+  { k:"Common", l:"Most Common" }
+];
+
 /* ----- Player search (applies to skaters, goalies and penalties) ----- */
 const searchQ = () => ($("search-stats").value || "").trim().toLowerCase();
 const hit = r => { const q = searchQ(); return !q || String(r.Player).toLowerCase().includes(q) || String(r.Jersey || "").toLowerCase().includes(q); };
@@ -421,29 +500,34 @@ function applySearch() {
    RENDER
    ===================================================== */
 function renderTicker() {
-  const played = D.team.filter(g => g._played).slice(-8);
-  const upcoming = upcomingGames();          // every upcoming game, as far out as the schedule goes
-  const res = played.map(g => `<div class="tgame">
+  const played = D.team.filter(g => g._played).slice(-CFG.tickerPast);
+  const upcoming = upcomingGames().slice(0, CFG.tickerNext);
+  const linkAttrs = g => g._hasOpp ? ` link" data-game="${esc(g._key)}" title="Open Game Center` : "";
+  const gcBar = g => g._hasOpp ? `<div class="gc">Game Center &rsaquo;</div>` : "";
+
+  const res = played.map(g => `<div class="tgame${linkAttrs(g)}">
       <div class="tdate">${esc(shortDate(g.Date))} &bull; Final${esc(g._suffix)}</div>
       <div class="trow"><span>${esc(CFG.teamName)}</span><span>${esc(g.GF)}</span></div>
       <div class="trow dim"><span>${vs(g)}</span><span>${esc(g.GA)}</span></div>
-      <div class="tres ${g._code}">${g._code === "W" ? "WIN" : g._code === "L" ? "LOSS" : g._code}</div></div>`).join("");
+      <div class="tres ${g._code}">${g._code === "W" ? "WIN" : g._code === "L" ? "LOSS" : g._code}</div>${gcBar(g)}</div>`).join("");
+
   const up = upcoming.map((g, i) => {
-    const cls = `tgame upcoming${i === 0 ? " next" : ""}`;
+    const first = i === 0 ? " next" : "";
     if (g._tourn) {
       // Tournament card: date / tournament name (left of |) / location (right of |)
       const [name, loc] = splitRink(g.Rink);
-      return `<div class="${cls}"><div class="tdate">${esc(shortDate(g.Date))}</div>
+      return `<div class="tgame upcoming${first}"><div class="tdate">${esc(shortDate(g.Date))}</div>
         <div class="up-line">${esc(name || "Tournament")}</div>
         <div class="trow dim"><span>${esc(loc) || "&nbsp;"}</span></div>
         <div class="tres up">UPCOMING</div></div>`;
     }
     const when = esc(shortDate(g.Date)) + (g.Time ? ` &bull; ${esc(g.Time)}` : "");
-    return `<div class="${cls}"><div class="tdate">${when}</div>
+    return `<div class="tgame upcoming${first}${linkAttrs(g)}"><div class="tdate">${when}</div>
       <div class="up-line">${esc(CFG.teamName)}</div>
       <div class="trow dim"><span>${vs(g)}</span></div>
-      <div class="tres up">UPCOMING</div></div>`;
+      <div class="tres up">UPCOMING</div>${gcBar(g)}</div>`;
   }).join("");
+
   $("ticker").innerHTML = res + up || `<div class="tgame"><div class="tdate">No games yet</div></div>`;
   const nx = document.querySelector(".tgame.next");
   if (nx) $("ticker").parentElement.scrollLeft = Math.max(0, nx.offsetLeft - 330);
@@ -472,18 +556,17 @@ function renderHome() {
   const gf = done.reduce((s, g) => s + num(g.GF), 0), ga = done.reduce((s, g) => s + num(g.GA), 0), gp = done.length;
   // Team PIM = every row in Penalty Stats, including bench minors
   const pims = D.penalties.filter(inType).reduce((s, r) => s + num(r.PIM), 0);
-  const tiles = [
+  renderTiles($("stats"), [
     ["Record (W-L-T-OTL)", `${w}-${l}-${t}-${otl}`, true], ["Games Played", gp],
     ["Win %", gp ? Math.round((w / gp) * 100) + "%" : "—"],
     ["Goals For", gf], ["Goals Against", ga], ["Goal Diff", signed(gf - ga)],
     ["GF / Game", gp ? (gf / gp).toFixed(2) : "—"], ["GA / Game", gp ? (ga / gp).toFixed(2) : "—"],
     ["Penalty Min", pimFmt(pims)]
-  ];
-  $("stats").innerHTML = tiles.map(([a, b, wide]) => `<div class="stat${wide ? " wide" : ""}"><div class="lbl">${a}</div><div class="val">${b}</div></div>`).join("");
+  ]);
 
   // Next Up and Recent Results always show the actual next / last games
   table($("upcoming"), [
-    { k:"Date", l:"Date", f:g => esc(shortDate(g.Date)) }, { k:"Time", l:"Time" },
+    { k:"Date", l:"Date", mid:true, f:g => esc(shortDate(g.Date)) }, { k:"Time", l:"Time", mid:true },
     { k:"Opponent", l:"Opponent", f:g => vs(g) }, { k:"Rink", l:"Rink" }, { k:"Type", l:"Type" }
   ], upcomingGames().slice(0, 3), { empty:"No upcoming games scheduled." });
 
@@ -500,11 +583,12 @@ function renderHome() {
   table($("recent"), scheduleCols(), D.team.filter(g => g._played).slice(-4).reverse(), { empty:"No games played yet." });
 }
 
+// Used by both Recent Results (Home) and the Schedule: Game, Date, Time, Score and Result are centered
 function scheduleCols() {
   return [
-    { k:"_gm", l:"Game", n:true, f:g => esc(g.Game) },
-    { k:"_ts", l:"Date", n:true, f:g => esc(shortDate(g.Date)) },
-    { k:"Time", l:"Time" },
+    { k:"_gm", l:"Game", n:true, mid:true, f:g => esc(g.Game) },
+    { k:"_ts", l:"Date", n:true, mid:true, f:g => esc(shortDate(g.Date)) },
+    { k:"Time", l:"Time", mid:true },
     { k:"Opponent", l:"Opponent", f:g => vs(g) },
     { k:"Rink", l:"Rink" },
     { k:"GF", l:"Score", n:true, mid:true, f:g => g._played ? `${esc(g.GF)} – ${esc(g.GA)}` : "—" },
@@ -514,33 +598,19 @@ function scheduleCols() {
 }
 
 function renderSchedule() {
-  table($("tbl-schedule"), scheduleCols(), D.team.filter(inType), { sort:"_ts", asc:true });
+  table($("tbl-schedule"), scheduleCols(), D.team.filter(inType), { sort:"_ts", asc:true, game:true });
 }
 
 function renderSkaters() {
-  SK.rows = skaterAgg(D.skaters.filter(inType)).map(r => ({ ...r, Pos: POS.get(r.Player) || "" }));
-  const cols = [
-    { k:"Player", l:"Player" },
-    { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"Pos", l:"Pos", mid:true },
-    { k:"GP", l:"GP", n:true }, { k:"G", l:"G", n:true }, { k:"A", l:"A", n:true },
-    { k:"P", l:"P", n:true, f:r => `<b>${r.P}</b>` },
-    { k:"PM", l:"+/-", n:true, f:r => pm(r.PM) },
-    { k:"PPG", l:"P/GP", n:true, f:r => `<b>${r.PPG.toFixed(2)}</b>` }
-  ];
+  SK.rows = skRows(D.skaters.filter(inType));
   // Default sort: points per game (ties broken by total points)
-  SK.t = table($("tbl-skaters"), cols, SK.rows.filter(hit), { sort:"PPG", then:"P", player:"Player", center:true, empty:searchEmpty("No data yet.") });
+  SK.t = table($("tbl-skaters"), skaterCols(), SK.rows.filter(hit), { sort:"PPG", then:"P", player:"Player", center:true, empty:searchEmpty("No data yet.") });
 }
 
 function renderGoalies() {
   GO.rows = goalieAgg(D.goalies.filter(inType));
   // Default sort: goals against average, lowest first (ties broken by wins)
-  GO.t = table($("tbl-goalies"), [
-    { k:"Player", l:"Goalie" }, { k:"JN", l:"Jersey", n:true, f:r => esc(r.Jersey) }, { k:"GP", l:"GP", n:true },
-    { k:"W", l:"W", n:true }, { k:"L", l:"L", n:true }, { k:"T", l:"T", n:true }, { k:"OTL", l:"OTL", n:true },
-    { k:"GA", l:"GA", n:true }, { k:"MIN", l:"MIN", n:true },
-    { k:"GAA", l:"GAA", n:true, f:r => r.GAA === null ? "—" : `<b>${r.GAA.toFixed(2)}</b>` },
-    { k:"SO", l:"SO", n:true }
-  ], GO.rows.filter(hit), { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:searchEmpty("No data yet.") });
+  GO.t = table($("tbl-goalies"), goalieCols(), GO.rows.filter(hit), { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:searchEmpty("No data yet.") });
   $("goalie-note").textContent = `GAA is goals against per ${CFG.gameMinutes} minutes (one full game).`;
 }
 
@@ -553,13 +623,74 @@ function renderPenalties() {
   $("pen-summary").textContent = raw.length
     ? `Team total: ${raw.length} penalties, ${pimFmt(total)} PIM (includes ${bench.length} bench ${bench.length === 1 ? "penalty" : "penalties"}, ${pimFmt(benchPIM)} PIM).`
     : "";
-  PEN.t = table($("tbl-penalties"), [
-    { k:"Player", l:"Player" },
-    { k:"JN", l:"Jersey", n:true, f:r => r._bench ? "—" : esc(r.Jersey) },
-    { k:"PEN", l:"Penalties", n:true },
-    { k:"PIM", l:"PIM", n:true, f:r => `<b>${r.PIM}</b>` },
-    { k:"Common", l:"Most Common" }
-  ], PEN.rows.filter(hit), { sort:"PIM", player:"Player", center:true, empty:searchEmpty("No penalties recorded.") });
+  PEN.t = table($("tbl-penalties"), penaltyCols(), PEN.rows.filter(hit), { sort:"PIM", player:"Player", center:true, empty:searchEmpty("No penalties recorded.") });
+}
+
+/* ----- Game Center: head-to-head history against this game's opponent (uses all games, ignores the game-type filter) ----- */
+function renderGameCenter() {
+  const g = D.team.find(x => x._key === currentGC);
+  if (!g) { currentGC = null; showView("schedule"); return; }
+  const opp = g.Opponent, nk = normOpp(opp), sameOpp = r => normOpp(r.Opponent) === nk;
+  const meet = D.team.filter(x => x._played && sameOpp(x)).sort((a, b) => b._ts - a._ts);
+  const cnt = c => meet.filter(x => x._code === c).length;
+  const gp = meet.length, won = cnt("W");
+  const gf = meet.reduce((s, x) => s + num(x.GF), 0), ga = meet.reduce((s, x) => s + num(x.GA), 0);
+  const penRows = D.penalties.filter(sameOpp);
+  const pim = penRows.reduce((s, r) => s + num(r.PIM), 0);
+
+  const when = esc(shortDate(g.Date)) + (!isTBD(g.Time) ? ` &bull; ${esc(g.Time)}` : "");
+  const where = [g.Rink, g["Home/Away"]].filter(Boolean).map(esc).join(" &bull; ");
+  const center = g._played
+    ? `<div class="gc-status">FINAL${esc(g._suffix)}</div><div class="gc-score">${esc(g.GF)} – ${esc(g.GA)}</div>
+       <div class="gc-meta">${when}<br>${where}</div><div style="margin-top:8px">${badge(g)}</div>`
+    : `<div class="gc-status">UPCOMING</div><div class="gc-score">VS</div><div class="gc-meta">${when}<br>${where}</div>`;
+
+  $("gc").innerHTML = `
+    <div class="gc-hero">
+      <div class="gc-team"><div class="gc-badge"><img src="${esc(CFG.logo)}" alt="" onerror="this.parentNode.textContent='${esc(CFG.crestText)}'"></div><div class="gc-name">${esc(CFG.teamName)}</div></div>
+      <div class="gc-mid">${center}</div>
+      <div class="gc-team"><div class="gc-badge">${esc(initials(opp))}</div><div class="gc-name">${esc(opp)}</div></div>
+    </div>
+    <h2 class="sec">Head-to-Head vs ${esc(opp)}</h2>
+    <div class="stats" id="gc-stats"></div>
+    <h2 class="sec">Previous Meetings</h2>
+    <div class="card"><div class="tablewrap" id="gc-meet"></div></div>
+    <h2 class="sec">Skaters vs ${esc(opp)}</h2>
+    <div class="card"><div class="tablewrap" id="gc-sk"></div></div>
+    <h2 class="sec">Goalies vs ${esc(opp)}</h2>
+    <div class="card"><div class="tablewrap" id="gc-go"></div></div>
+    <h2 class="sec">Penalties vs ${esc(opp)}</h2>
+    <p class="note">${penRows.length ? `${penRows.length} penalties, ${pimFmt(pim)} PIM against ${esc(opp)} (includes bench minors).` : ""}</p>
+    <div class="card"><div class="tablewrap" id="gc-pen"></div></div>`;
+
+  renderTiles($("gc-stats"), [
+    ["Games Played", gp],
+    ["Record (W-L-T-OTL)", `${won}-${cnt("L")}-${cnt("T")}-${cnt("OTL")}`, true],
+    ["Win %", gp ? Math.round((won / gp) * 100) + "%" : "—"],
+    ["Goals For", gf], ["Goals Against", ga], ["Goal Diff", signed(gf - ga)],
+    ["Penalty Min", pimFmt(pim)]
+  ]);
+  table($("gc-meet"), [
+    { k:"_gm", l:"Game", n:true, mid:true, f:x => esc(x.Game) },
+    { k:"_ts", l:"Date", n:true, mid:true, f:x => esc(shortDate(x.Date)) },
+    { k:"Home/Away", l:"Home/Away", mid:true },
+    { k:"Rink", l:"Rink" },
+    { k:"GF", l:"Score", n:true, mid:true, f:x => `${esc(x.GF)} – ${esc(x.GA)}` },
+    { k:"_code", l:"Result", mid:true, f:x => badge(x) },
+    { k:"Type", l:"Type" }
+  ], meet, { sort:"_ts", empty:`No previous games against ${esc(opp)} yet.` });
+  table($("gc-sk"), skaterCols(), skRows(D.skaters.filter(sameOpp)),
+    { sort:"PPG", then:"P", player:"Player", center:true, empty:`No skater stats against ${esc(opp)} yet.` });
+  table($("gc-go"), goalieCols(), goalieAgg(D.goalies.filter(sameOpp)),
+    { sort:"GAA", asc:true, then:"W", player:"Player", center:true, empty:`No goalie stats against ${esc(opp)} yet.` });
+  table($("gc-pen"), penaltyCols(), penaltyAgg(penRows),
+    { sort:"PIM", player:"Player", center:true, empty:`No penalties against ${esc(opp)} yet.` });
+}
+
+function openGameCenter(key) {
+  currentGC = key;
+  renderGameCenter();
+  if (currentGC) showView("gamecenter", "#gc/" + encodeURIComponent(key));
 }
 
 function renderRoster() {
@@ -624,24 +755,33 @@ const closeModal = () => $("modal").classList.remove("open");
 /* =====================================================
    NAV / INIT
    ===================================================== */
+function showView(id, hash) {
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + id));
+  const navId = id === "gamecenter" ? "schedule" : id;    // Game Center keeps "Schedule" highlighted
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.v === navId));
+  $("filterWrap").style.display = (id === "roster" || id === "gamecenter") ? "none" : "";   // game-type filter hidden on Roster / Game Center
+  history.replaceState(null, "", hash || "#" + id);
+  window.scrollTo(0, 0);
+}
+
 function buildNav() {
   const items = [["home","Home"],["schedule","Schedule"],["stats","Stats"],["roster","Roster"]];
   $("nav").innerHTML = items.map(([id, l]) => `<button data-v="${id}">${l}</button>`).join("");
-  const show = id => {
-    document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + id));
-    document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.v === id));
-    $("filterWrap").style.display = id === "roster" ? "none" : "";   // game-type filter hidden on Roster
-    history.replaceState(null, "", "#" + id);
-    window.scrollTo(0, 0);
-  };
-  document.querySelectorAll("nav button").forEach(b => b.onclick = () => show(b.dataset.v));
-  const start = location.hash.slice(1);
-  show(items.some(i => i[0] === start) ? start : "home");
+  document.querySelectorAll("nav button").forEach(b => b.onclick = () => { currentGC = null; showView(b.dataset.v); });
+  const h = location.hash;
+  if (h.startsWith("#gc/")) {                              // a shared Game Center link: open it once the data has loaded
+    try { pendingGC = decodeURIComponent(h.slice(4)); } catch (e) {}
+    showView("schedule");
+  } else {
+    const start = h.slice(1);
+    showView(items.some(i => i[0] === start) ? start : "home");
+  }
 }
 
 function renderAll() {
   POS = new Map(D.roster.filter(p => !isBench(p)).map(p => [p.Player, p.Position || ""]));
   renderTicker(); renderHome(); renderSchedule(); renderSkaters(); renderGoalies(); renderPenalties(); renderRoster();
+  if (currentGC) renderGameCenter();
 }
 
 function buildTypeFilter() {
@@ -662,6 +802,10 @@ async function loadAll() {
     ? `<div class="card" style="margin-bottom:14px"><div class="msg err">Couldn't load: ${failed.map(esc).join(", ")}. Check the tab names and that the sheet is shared as "Anyone with the link can view".</div></div>` : "";
   buildTypeFilter();
   renderAll();
+  if (pendingGC) {
+    const k = pendingGC; pendingGC = null;
+    if (D.team.some(g => g._key === k)) openGameCenter(k);
+  }
   $("footer").textContent = `Unofficial team stats site • Data from Google Sheets • Updated ${new Date().toLocaleTimeString([], { hour:"numeric", minute:"2-digit" })}`;
 }
 
@@ -677,9 +821,12 @@ $("seasonLabel").textContent = CFG.season;
 $("typeFilter").onchange = e => { typeFilter = e.target.value; renderAll(); };
 $("pos-filter").onchange = e => { posFilter = e.target.value; renderRoster(); };
 $("search-stats").oninput = applySearch;
+$("gc-back").onclick = () => { currentGC = null; showView("schedule"); };
 document.addEventListener("click", e => {
   const j = e.target.closest("[data-jump]");
   if (j) { e.preventDefault(); $(j.dataset.jump).scrollIntoView({ behavior:"smooth", block:"start" }); return; }
+  const gm = e.target.closest("[data-game]");
+  if (gm && gm.dataset.game) { openGameCenter(gm.dataset.game); return; }
   const p = e.target.closest("[data-player]");
   if (p && p.dataset.player) openPlayer(p.dataset.player);
 });
